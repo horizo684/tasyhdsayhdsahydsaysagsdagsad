@@ -26,7 +26,16 @@ minecraft {
     mappings = "stable_22"
 }
 
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
 dependencies {
+    // Discord IPC для Rich Presence (правильная версия)
+    compile('com.github.jagrosh:DiscordIPC:0.5.0') {
+        exclude module: 'log4j'
+        exclude group: 'org.slf4j'
+    }
 }
 
 processResources {
@@ -40,5 +49,19 @@ processResources {
 
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
+    }
+}
+
+// Добавляем Discord IPC в финальный JAR
+jar {
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    
+    // Исключаем дубликаты
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
+    manifest {
+        attributes 'FMLCorePlugin': 'com.amethyst.client.AmethystClient'
     }
 }

@@ -92,8 +92,8 @@ public class ModernClickGUI extends GuiScreen {
             else if (m instanceof ModuleList || m instanceof ColorChanger || m instanceof Nametag
                   || m instanceof Friends    || m instanceof FullBright)
                 visual.modules.add(m);
-            else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam)
-				  || m instanceof AutoSprint) 
+            else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam
+                  || m instanceof AutoSprint || m instanceof DiscordRPC)
                 misc.modules.add(m);
             else if (m instanceof SoupCounter || m instanceof FPSCounter || m instanceof PingCounter
                   || m instanceof Clock       || m instanceof CPSCounter  || m instanceof Saturation)

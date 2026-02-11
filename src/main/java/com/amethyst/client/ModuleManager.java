@@ -30,12 +30,13 @@ public class ModuleManager {
         modules.add(new Refill());
         
         // Movement Modules
-        modules.add(new AutoSprint());  // NEW!
+        modules.add(new AutoSprint());
         modules.add(new NoJumpDelay());
         
         // Misc Modules
         modules.add(new CopyChat());
         modules.add(new NoHurtCam());
+        modules.add(new DiscordRPC());
 
         loadConfig();
     }
