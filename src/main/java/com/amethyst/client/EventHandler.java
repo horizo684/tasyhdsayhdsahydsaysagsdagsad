@@ -9,8 +9,6 @@ import org.lwjgl.input.Keyboard;
 
 public class EventHandler {
     private Minecraft mc = Minecraft.getMinecraft();
-    private int discordUpdateTicks = 0;
-    private static final int DISCORD_UPDATE_INTERVAL = 100; // Обновлять каждые 5 секунд (100 тиков)
     
     @SubscribeEvent
     public void onKeyInput(InputEvent.KeyInputEvent event) {
@@ -68,16 +66,6 @@ public class EventHandler {
                 if (mc.gameSettings.gammaSetting > 1.0F) {
                     mc.gameSettings.gammaSetting = 1.0F;
                 }
-            }
-        }
-        
-        // Обновление Discord RPC каждые 5 секунд
-        DiscordRPC discordRPC = (DiscordRPC) AmethystClient.moduleManager.getModuleByName("Discord RPC");
-        if (discordRPC != null && discordRPC.isEnabled() && discordRPC.isConnected()) {
-            discordUpdateTicks++;
-            if (discordUpdateTicks >= DISCORD_UPDATE_INTERVAL) {
-                discordRPC.updatePresence();
-                discordUpdateTicks = 0;
             }
         }
     }

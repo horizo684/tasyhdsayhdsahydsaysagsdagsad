@@ -1,7 +1,5 @@
 package com.amethyst.client;
 
-import com.amethyst.client.modules.CopyChat;
-import com.amethyst.client.modules.NoJumpDelay;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -27,10 +25,8 @@ public class AmethystClient {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         moduleManager = new ModuleManager();
-
         KeyBindings.register();
 
-        // Core renderers and handlers
         MinecraftForge.EVENT_BUS.register(new HUDRenderer());
         MinecraftForge.EVENT_BUS.register(new EventHandler());
         MinecraftForge.EVENT_BUS.register(new NametagRenderer());
@@ -38,46 +34,28 @@ public class AmethystClient {
         MinecraftForge.EVENT_BUS.register(new GuiModifier());
         MinecraftForge.EVENT_BUS.register(new CopyChatClickHandler());
 
-        // Register module-specific event handlers
         Module cpsCounter = moduleManager.getModuleByName("CPS Counter");
-        if (cpsCounter != null) {
-            MinecraftForge.EVENT_BUS.register(cpsCounter);
-        }
+        if (cpsCounter != null) MinecraftForge.EVENT_BUS.register(cpsCounter);
 
         Module refill = moduleManager.getModuleByName("Refill");
-        if (refill != null) {
-            MinecraftForge.EVENT_BUS.register(refill);
-        }
+        if (refill != null) MinecraftForge.EVENT_BUS.register(refill);
 
         Module friends = moduleManager.getModuleByName("Friends");
-        if (friends != null) {
-            MinecraftForge.EVENT_BUS.register(friends);
-        }
+        if (friends != null) MinecraftForge.EVENT_BUS.register(friends);
 
         Module saturation = moduleManager.getModuleByName("Saturation");
-        if (saturation != null) {
-            MinecraftForge.EVENT_BUS.register(saturation);
-        }
+        if (saturation != null) MinecraftForge.EVENT_BUS.register(saturation);
 
         Module copyChat = moduleManager.getModuleByName("CopyChat");
-        if (copyChat != null) {
-            MinecraftForge.EVENT_BUS.register(copyChat);
-        }
+        if (copyChat != null) MinecraftForge.EVENT_BUS.register(copyChat);
 
         Module noJumpDelay = moduleManager.getModuleByName("NoJumpDelay");
-        if (noJumpDelay != null) {
-            MinecraftForge.EVENT_BUS.register(noJumpDelay);
-        }
+        if (noJumpDelay != null) MinecraftForge.EVENT_BUS.register(noJumpDelay);
 
         Module noHurtCam = moduleManager.getModuleByName("NoHurtCam");
-        if (noHurtCam != null) {
-            MinecraftForge.EVENT_BUS.register(noHurtCam);
-        }
+        if (noHurtCam != null) MinecraftForge.EVENT_BUS.register(noHurtCam);
 
-        // NEW: Register AutoSprint
         Module autoSprint = moduleManager.getModuleByName("AutoSprint");
-        if (autoSprint != null) {
-            MinecraftForge.EVENT_BUS.register(autoSprint);
-        }
+        if (autoSprint != null) MinecraftForge.EVENT_BUS.register(autoSprint);
     }
 }

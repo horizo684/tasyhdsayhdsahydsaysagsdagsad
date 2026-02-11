@@ -10,34 +10,37 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
          by: Searge, ProfMobius, Fesh0r,         
          R4wk, ZeuX, IngisKahn, bspkrs           
 #################################################
+:deobfCompileDummyTask
+:deobfProvidedDummyTask
+:sourceApiJava
+:compileApiJava UP-TO-DATE
+:processApiResources UP-TO-DATE
+:apiClasses UP-TO-DATE
+:sourceMainJava
+:compileJava
+:processResources
+:classes
+:jar
+:sourceTestJava
+:compileTestJava UP-TO-DATE
+:processTestResources UP-TO-DATE
+:testClasses UP-TO-DATE
+:test UP-TO-DATE
+:extractMcpData SKIPPED
+:extractMcpMappings SKIPPED
+:getVersionJson
+:extractUserdev UP-TO-DATE
+:genSrgs SKIPPED
+:reobfJar
+:extractRangemapReplacedMain
+C:\Users\horizo\Desktop\newclient\build\sources\main\java
+:retromapReplacedMain
+remapping source...
+:sourceJar
+:assemble
+:check UP-TO-DATE
+:build
 
-FAILURE: Build failed with an exception.
+BUILD SUCCESSFUL
 
-* Where:
-Build file 'C:\Users\horizo\Desktop\newclient\build.gradle' line: 58
-
-* What went wrong:
-Could not resolve all dependencies for configuration ':compile'.
-> Could not find com.github.jagrosh:DiscordIPC:0.5.0.
-  Searched in the following locations:
-      https://maven.minecraftforge.net/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.pom
-      https://maven.minecraftforge.net/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.jar
-      https://repo1.maven.org/maven2/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.pom
-      https://repo1.maven.org/maven2/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.jar
-      https://libraries.minecraft.net/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.pom
-      https://libraries.minecraft.net/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.jar
-      https://jitpack.io/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.pom
-      https://jitpack.io/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.jar
-      file:/C:/Users/horizo/.gradle/caches/minecraft/deobfedDeps/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.pom
-      file:/C:/Users/horizo/.gradle/caches/minecraft/deobfedDeps/com/github/jagrosh/DiscordIPC/0.5.0/DiscordIPC-0.5.0.jar
-      file:/C:/Users/horizo/.gradle/caches/minecraft/net/minecraftforge/forge/1.8.9-11.15.1.2318-1.8.9/stable/22/DiscordIPC-0.5.0.jar
-      file:/C:/Users/horizo/.gradle/caches/minecraft/net/minecraftforge/forge/1.8.9-11.15.1.2318-1.8.9/stable/22/DiscordIPC.jar
-  Required by:
-      com.amethyst.client:newclient:1.1
-
-* Try:
-Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output.
-
-BUILD FAILED
-
-Total time: 17.312 secs
+Total time: 26.805 secs

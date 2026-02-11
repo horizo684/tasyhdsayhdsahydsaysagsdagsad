@@ -36,7 +36,6 @@ public class ModuleManager {
         // Misc Modules
         modules.add(new CopyChat());
         modules.add(new NoHurtCam());
-        modules.add(new DiscordRPC());
 
         loadConfig();
     }
