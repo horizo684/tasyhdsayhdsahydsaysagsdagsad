@@ -17,30 +17,24 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJava
-:processResources
-:classes
-:jar
-:sourceTestJava
-:compileTestJava UP-TO-DATE
-:processTestResources UP-TO-DATE
-:testClasses UP-TO-DATE
-:test UP-TO-DATE
-:extractMcpData SKIPPED
-:extractMcpMappings SKIPPED
-:getVersionJson
-:extractUserdev UP-TO-DATE
-:genSrgs SKIPPED
-:reobfJar
-:extractRangemapReplacedMain
-C:\Users\horizo\Desktop\newclient\build\sources\main\java
-:retromapReplacedMain
-remapping source...
-:sourceJar
-:assemble
-:check UP-TO-DATE
-:build
+:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:267: error: method resolveScoreboardX(ScaledResolution) is already defined in class HUDEditorGUI
+    private int resolveScoreboardX(ScaledResolution sr) {
+                ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:271: error: method resolveChatY(ScaledResolution) is already defined in class HUDEditorGUI
+    private int resolveChatY(ScaledResolution sr) {
+                ^
+2 errors
+ FAILED
 
-BUILD SUCCESSFUL
+FAILURE: Build failed with an exception.
 
-Total time: 1 mins 0.565 secs
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output.
+
+BUILD FAILED
+
+Total time: 31.844 secs
