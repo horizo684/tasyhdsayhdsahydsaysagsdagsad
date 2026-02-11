@@ -17,13 +17,311 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:267: error: method resolveScoreboardX(ScaledResolution) is already defined in class HUDEditorGUI
-    private int resolveScoreboardX(ScaledResolution sr) {
+:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:15: error: class ClickGUI is public, should be declared in a file named ClickGUI.java
+public class ClickGUI extends GuiScreen {
+       ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:11: error: class ScoreboardModule is public, should be declared in a file named ScoreboardModule.java
+public class ScoreboardModule extends Module {
+       ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CustomChat.java:12: error: cannot find symbol
+public class CustomChat extends Module {
+                                ^
+  symbol: class Module
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:4: error: cannot find symbol
+import com.amethyst.client.modules.Module;
+                                  ^
+  symbol:   class Module
+  location: package com.amethyst.client.modules
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:5: error: package com.amethyst.client.modules.Module does not exist
+import com.amethyst.client.modules.Module.Category;
+                                         ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:99: error: cannot find symbol
+    public void openSettings(Module module, int x, int y) {
+                             ^
+  symbol:   class Module
+  location: class ClickGUI
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:112: error: cannot find symbol
+        private Category category;
                 ^
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:271: error: method resolveChatY(ScaledResolution) is already defined in class HUDEditorGUI
-    private int resolveChatY(ScaledResolution sr) {
+  symbol:   class Category
+  location: class ClickGUI.CategoryPanel
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:123: error: cannot find symbol
+        public CategoryPanel(Category category, int x, int y) {
+                             ^
+  symbol:   class Category
+  location: class ClickGUI.CategoryPanel
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:317: error: cannot find symbol
+        private Module module;
                 ^
-2 errors
+  symbol:   class Module
+  location: class ClickGUI.ModuleSettingsPanel
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:327: error: cannot find symbol
+        public ModuleSettingsPanel(Module module, int x, int y) {
+                                   ^
+  symbol:   class Module
+  location: class ClickGUI.ModuleSettingsPanel
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:235: error: cannot find symbol
+        private Module module;
+                ^
+  symbol:   class Module
+  location: class ClickGUI.ModuleButton
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:238: error: cannot find symbol
+        public ModuleButton(Module module) {
+                            ^
+  symbol:   class Module
+  location: class ClickGUI.ModuleButton
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:11: error: cannot find symbol
+public class ScoreboardModule extends Module {
+                                      ^
+  symbol: class Module
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardPickerGUI.java:3: error: cannot find symbol
+import com.amethyst.client.modules.Scoreboard;
+                                  ^
+  symbol:   class Scoreboard
+  location: package com.amethyst.client.modules
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardPickerGUI.java:17: error: cannot find symbol
+    private final Scoreboard mod;
+                  ^
+  symbol:   class Scoreboard
+  location: class ScoreboardPickerGUI
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardPickerGUI.java:26: error: cannot find symbol
+    public ScoreboardPickerGUI(GuiScreen parent, Scoreboard mod) {
+                                                 ^
+  symbol:   class Scoreboard
+  location: class ScoreboardPickerGUI
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:3: error: cannot find symbol
+import com.amethyst.client.modules.Scoreboard;
+                                  ^
+  symbol:   class Scoreboard
+  location: package com.amethyst.client.modules
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:59: error: cannot find symbol
+                                   Scoreboard mod) {
+                                   ^
+  symbol:   class Scoreboard
+  location: class ScoreboardRenderer
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\VanillaScoreboardSuppressor.java:3: error: cannot find symbol
+import com.amethyst.client.modules.Scoreboard;
+                                  ^
+  symbol:   class Scoreboard
+  location: package com.amethyst.client.modules
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModuleManager.java:18: error: cannot find symbol
+        modules.add(new Scoreboard());    // ? NEW
+                        ^
+  symbol:   class Scoreboard
+  location: class ModuleManager
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModuleManager.java:19: error: no suitable method found for add(CustomChat)
+        modules.add(new CustomChat());    // ? NEW
+               ^
+    method Collection.add(Module) is not applicable
+      (argument mismatch; CustomChat cannot be converted to Module)
+    method List.add(Module) is not applicable
+      (argument mismatch; CustomChat cannot be converted to Module)
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:50: error: cannot find symbol
+        iy = drawToggle(mx, my, px + 15, iy, "Fade-in animation", mod.isFadeMessages());    iy += 6;
+                                                                     ^
+  symbol:   method isFadeMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:51: error: cannot find symbol
+        iy = drawToggle(mx, my, px + 15, iy, "Show timestamps",   mod.isShowTimestamps());  iy += 10;
+                                                                     ^
+  symbol:   method isShowTimestamps()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:55: error: cannot find symbol
+        float scaleNorm = (mod.getScale() - 0.5f) / 1.5f;
+                              ^
+  symbol:   method getScale()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:56: error: cannot find symbol
+        float msgsNorm  = (mod.getMaxMessages() - 3f) / 17f;
+                              ^
+  symbol:   method getMaxMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:61: error: cannot find symbol
+                "Scale  " + String.format("%.1fx", mod.getScale()),
+                                                      ^
+  symbol:   method getScale()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:64: error: cannot find symbol
+                "Visible lines: " + mod.getMaxMessages(),
+                                       ^
+  symbol:   method getMaxMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:113: error: cannot find symbol
+            float alpha = mod.isFadeMessages() ? 0.5f + 0.5f * i / msgs.length : 1.0f;
+                             ^
+  symbol:   method isFadeMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:190: error: cannot find symbol
+        if (inToggle(mx, my, toggleX, iy)) { mod.setFadeMessages(!mod.isFadeMessages()); return; }
+                                                                     ^
+  symbol:   method isFadeMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:193: error: cannot find symbol
+        if (inToggle(mx, my, toggleX, iy)) { mod.setShowTimestamps(!mod.isShowTimestamps()); return; }
+                                                                       ^
+  symbol:   method isShowTimestamps()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:203: error: cannot find symbol
+        if (inSlider(mx, my, sliderX, iy, sliderW)) { draggingScale = true; mod.setScale(0.5f+(float)(mx-sliderX)/sliderW*1.5f); return; }
+                                                                               ^
+  symbol:   method setScale(float)
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:207: error: cannot find symbol
+        if (inSlider(mx, my, sliderX, iy, sliderW)) { draggingMsgs = true; mod.setMaxMessages(3+(int)((float)(mx-sliderX)/sliderW*17)); return; }
+                                                                              ^
+  symbol:   method setMaxMessages(int)
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:232: error: cannot find symbol
+        if (draggingScale) mod.setScale(0.5f + n * 1.5f);
+                              ^
+  symbol:   method setScale(float)
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:233: error: cannot find symbol
+        if (draggingMsgs)  mod.setMaxMessages(3 + (int)(n * 17));
+                              ^
+  symbol:   method setMaxMessages(int)
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CustomChat.java:18: error: cannot find symbol
+        super("CustomChat", "Movable chat with smooth animations", Keyboard.KEY_NONE, Category.RENDER);
+                                                                                      ^
+  symbol:   variable Category
+  location: class CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CustomChat.java:21: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CustomChat.java:26: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CustomChat.java:34: error: cannot find symbol
+        if (!this.isEnabled()) return;
+                 ^
+  symbol: method isEnabled()
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:42: error: incompatible types: Module cannot be converted to CustomChat
+        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+                                                                                  ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:43: error: cannot find symbol
+        if (mod == null || !mod.isEnabled()) return;
+                               ^
+  symbol:   method isEnabled()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:72: error: cannot find symbol
+        float scale = mod.getScale();
+                         ^
+  symbol:   method getScale()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:73: error: cannot find symbol
+        int maxLines = mod.getMaxMessages();
+                          ^
+  symbol:   method getMaxMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:116: error: cannot find symbol
+            if (mod.isFadeMessages()) {
+                   ^
+  symbol:   method isFadeMessages()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:142: error: cannot find symbol
+            if (mod.isShowTimestamps()) {
+                   ^
+  symbol:   method isShowTimestamps()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:155: error: cannot find symbol
+                    (textAlpha << 24) | (mod.getTextColor() & 0x00FFFFFF));
+                                            ^
+  symbol:   method getTextColor()
+  location: variable mod of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\EventHandler.java:20: error: cannot find symbol
+            mc.displayGuiScreen(new ModernClickGUI());
+                                    ^
+  symbol:   class ModernClickGUI
+  location: class EventHandler
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:177: error: incompatible types: Module cannot be converted to ScoreboardModule
+        ScoreboardModule m = (ScoreboardModule) AmethystClient.moduleManager.getModuleByName("Scoreboard");
+                                                                                            ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:178: error: cannot find symbol
+        if (m == null || !m.isEnabled()) return;
+                           ^
+  symbol:   method isEnabled()
+  location: variable m of type ScoreboardModule
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:215: error: incompatible types: Module cannot be converted to CustomChat
+        CustomChat m = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+                                                                                ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:216: error: cannot find symbol
+        if (m == null || !m.isEnabled()) return;
+                           ^
+  symbol:   method isEnabled()
+  location: variable m of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:386: error: incompatible types: Module cannot be converted to ScoreboardModule
+            ScoreboardModule sb = (ScoreboardModule) AmethystClient.moduleManager.getModuleByName("Scoreboard");
+                                                                                                 ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:387: error: cannot find symbol
+            if (sb != null && sb.isEnabled()) {
+                                ^
+  symbol:   method isEnabled()
+  location: variable sb of type ScoreboardModule
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:395: error: incompatible types: Module cannot be converted to CustomChat
+            CustomChat chat = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+                                                                                       ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:396: error: cannot find symbol
+            if (chat != null && chat.isEnabled()) {
+                                    ^
+  symbol:   method isEnabled()
+  location: variable chat of type CustomChat
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:26: error: cannot find symbol
+        for (Category category : Category.values()) {
+                                 ^
+  symbol:   variable Category
+  location: class ClickGUI
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:26: error: cannot find symbol
+        for (Category category : Category.values()) {
+             ^
+  symbol:   class Category
+  location: class ClickGUI
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:128: error: cannot find symbol
+            for (Module module : AmethystClient.moduleManager.getModulesInCategory(category)) {
+                 ^
+  symbol:   class Module
+  location: class ClickGUI.CategoryPanel
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:16: error: cannot find symbol
+        super("Scoreboard", "Custom scoreboard renderer", Keyboard.KEY_NONE, Category.RENDER);
+                                                                             ^
+  symbol:   variable Category
+  location: class ScoreboardModule
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:19: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:24: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:32: error: cannot find symbol
+        if (this.isEnabled() && event.getType() == RenderGameOverlayEvent.ElementType.PLAYER_LIST) {
+                ^
+  symbol: method isEnabled()
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:32: error: cannot find symbol
+        if (this.isEnabled() && event.getType() == RenderGameOverlayEvent.ElementType.PLAYER_LIST) {
+                                     ^
+  symbol:   method getType()
+  location: variable event of type Pre
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:39: error: cannot find symbol
+        if (!this.isEnabled()) return;
+                 ^
+  symbol: method isEnabled()
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Scoreboard.java:54: error: cannot find symbol
+            if (x == -1) x = event.getResolution().getScaledWidth() - 115;
+                                  ^
+  symbol:   method getResolution()
+  location: variable event of type Text
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:27: error: cannot find symbol
+        Scoreboard mod = (Scoreboard) AmethystClient.moduleManager.getModuleByName("Scoreboard");
+        ^
+  symbol:   class Scoreboard
+  location: class ScoreboardRenderer
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:27: error: cannot find symbol
+        Scoreboard mod = (Scoreboard) AmethystClient.moduleManager.getModuleByName("Scoreboard");
+                          ^
+  symbol:   class Scoreboard
+  location: class ScoreboardRenderer
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+66 errors
  FAILED
 
 FAILURE: Build failed with an exception.
@@ -37,4 +335,4 @@ Run with --stacktrace option to get the stack trace. Run with --info or --debug 
 
 BUILD FAILED
 
-Total time: 31.844 secs
+Total time: 28.996 secs

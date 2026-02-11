@@ -1,37 +1,86 @@
 package com.amethyst.client.modules;
 
-import com.amethyst.client.Module;
+import com.amethyst.client.HUDConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiNewChat;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.lwjgl.input.Keyboard;
 
 public class CustomChat extends Module {
 
-    // ── Settings ──────────────────────────────────────────────────────────────
     private boolean showBackground = true;
-    private float   bgAlpha       = 0.35f;
-    private float   scale         = 1.0f;
-    private boolean fadeMessages  = true;   // плавное появление
-    private int     maxMessages   = 10;     // сколько строк видно
-    private int     textColor     = 0xFFFFFFFF;
-    private boolean showTimestamps = false;
+    private float bgAlpha = 0.5f;
 
     public CustomChat() {
-        super("CustomChat", "Movable chat with smooth fade-in animation");
+        super("CustomChat", "Movable chat with smooth animations", Keyboard.KEY_NONE, Category.RENDER);
     }
 
-    // ── Getters ───────────────────────────────────────────────────────────────
-    public boolean isShowBackground() { return showBackground; }
-    public float   getBgAlpha()       { return bgAlpha; }
-    public float   getScale()         { return scale; }
-    public boolean isFadeMessages()   { return fadeMessages; }
-    public int     getMaxMessages()   { return maxMessages; }
-    public int     getTextColor()     { return textColor; }
-    public boolean isShowTimestamps() { return showTimestamps; }
+    @Override
+    public void onEnable() {
+        // Регистрируем обработчик
+    }
 
-    // ── Setters ───────────────────────────────────────────────────────────────
-    public void setShowBackground(boolean v) { showBackground = v; }
-    public void setBgAlpha(float v)          { bgAlpha = Math.max(0f, Math.min(1f, v)); }
-    public void setScale(float v)            { scale = Math.max(0.5f, Math.min(2.0f, v)); }
-    public void setFadeMessages(boolean v)   { fadeMessages = v; }
-    public void setMaxMessages(int v)        { maxMessages = Math.max(3, Math.min(20, v)); }
-    public void setTextColor(int v)          { textColor = v | 0xFF000000; }
-    public void setShowTimestamps(boolean v) { showTimestamps = v; }
+    @Override
+    public void onDisable() {
+        // Восстанавливаем ванильный чат
+        resetChatPosition();
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onRenderChat(RenderGameOverlayEvent.Chat event) {
+        if (!this.isEnabled()) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        GuiNewChat chat = mc.ingameGUI.getChatGUI();
+        ScaledResolution sr = new ScaledResolution(mc);
+
+        // Получаем сохраненные координаты
+        int x = HUDConfig.getChatX();
+        int y = HUDConfig.getChatY();
+
+        // Если координаты не установлены, используем дефолтные (как в ванильном майнкрафте)
+        if (x == -1) x = 2; // Ванильная позиция X
+        if (y == -1) y = sr.getScaledHeight() - 48; // Ванильная позиция Y
+
+        // ВАЖНО: Отменяем стандартную отрисовку чата
+        event.setCanceled(true);
+
+        // Рисуем чат в кастомной позиции
+        net.minecraft.client.gui.Gui.drawRect(x, y, x + 320, y + 180, 
+            showBackground ? (int)(bgAlpha * 255) << 24 : 0);
+
+        // Сдвигаем рендер чата
+        org.lwjgl.opengl.GL11.glPushMatrix();
+        org.lwjgl.opengl.GL11.glTranslatef(x, y, 0);
+        
+        // Отрисовываем сам чат (всегда видим сообщения)
+        chat.drawChat(mc.ingameGUI.getUpdateCounter());
+        
+        org.lwjgl.opengl.GL11.glPopMatrix();
+    }
+
+    private void resetChatPosition() {
+        // Сбрасываем на ванильную позицию при отключении
+        HUDConfig.setChatX(-1);
+        HUDConfig.setChatY(-1);
+    }
+
+    public boolean isShowBackground() {
+        return showBackground;
+    }
+
+    public void setShowBackground(boolean showBackground) {
+        this.showBackground = showBackground;
+    }
+
+    public float getBgAlpha() {
+        return bgAlpha;
+    }
+
+    public void setBgAlpha(float bgAlpha) {
+        this.bgAlpha = bgAlpha;
+    }
 }

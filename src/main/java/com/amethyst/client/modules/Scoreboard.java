@@ -1,37 +1,74 @@
 package com.amethyst.client.modules;
 
-import com.amethyst.client.Module;
+import com.amethyst.client.HUDConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.scoreboard.ScoreObjective;
+import net.minecraft.scoreboard.Scoreboard;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.lwjgl.input.Keyboard;
 
-public class Scoreboard extends Module {
+public class ScoreboardModule extends Module {
 
-    // ── Settings ──────────────────────────────────────────────────────────────
-    private boolean showNumbers   = true;   // цифры справа
-    private boolean showBackground = true;  // полупрозрачный фон
-    private float   bgAlpha       = 0.4f;   // прозрачность фона (0-1)
-    private float   scale         = 1.0f;   // масштаб (0.5-2.0)
-    private int     textColor     = 0xFFFFFFFF;
-    private int     numberColor   = 0xFFFF5555; // красный как у ваниллы
-    private int     titleColor    = 0xFFFFFF55; // жёлтый как у ваниллы
+    private boolean showNumbers = true;
 
-    public Scoreboard() {
-        super("Scoreboard", "Custom scoreboard replacing server default");
+    public ScoreboardModule() {
+        super("Scoreboard", "Custom scoreboard renderer", Keyboard.KEY_NONE, Category.RENDER);
     }
 
-    // ── Getters ───────────────────────────────────────────────────────────────
-    public boolean isShowNumbers()    { return showNumbers; }
-    public boolean isShowBackground() { return showBackground; }
-    public float   getBgAlpha()       { return bgAlpha; }
-    public float   getScale()         { return scale; }
-    public int     getTextColor()     { return textColor; }
-    public int     getNumberColor()   { return numberColor; }
-    public int     getTitleColor()    { return titleColor; }
+    @Override
+    public void onEnable() {
+        // Регистрируем обработчик событий
+    }
 
-    // ── Setters ───────────────────────────────────────────────────────────────
-    public void setShowNumbers(boolean v)    { showNumbers = v; }
-    public void setShowBackground(boolean v) { showBackground = v; }
-    public void setBgAlpha(float v)          { bgAlpha = Math.max(0f, Math.min(1f, v)); }
-    public void setScale(float v)            { scale = Math.max(0.5f, Math.min(2.0f, v)); }
-    public void setTextColor(int v)          { textColor = v | 0xFF000000; }
-    public void setNumberColor(int v)        { numberColor = v | 0xFF000000; }
-    public void setTitleColor(int v)         { titleColor = v | 0xFF000000; }
+    @Override
+    public void onDisable() {
+        // Отменяем регистрацию
+    }
+
+    @SubscribeEvent
+    public void onRenderGameOverlay(RenderGameOverlayEvent.Pre event) {
+        // Отключаем ванильный scoreboard когда наш модуль включен
+        if (this.isEnabled() && event.getType() == RenderGameOverlayEvent.ElementType.PLAYER_LIST) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void onRenderScoreboard(RenderGameOverlayEvent.Text event) {
+        if (!this.isEnabled()) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        Scoreboard scoreboard = mc.theWorld.getScoreboard();
+        ScoreObjective objective = null;
+
+        if (scoreboard != null) {
+            objective = scoreboard.getObjectiveInDisplaySlot(1);
+        }
+
+        if (objective != null) {
+            // Кастомный рендеринг scoreboard
+            int x = HUDConfig.getScoreboardX();
+            int y = HUDConfig.getScoreboardY();
+            
+            if (x == -1) x = event.getResolution().getScaledWidth() - 115;
+            if (y == -1) y = 10;
+
+            // Здесь ваша кастомная логика отрисовки
+            renderCustomScoreboard(objective, x, y);
+        }
+    }
+
+    private void renderCustomScoreboard(ScoreObjective objective, int x, int y) {
+        // Ваша кастомная отрисовка scoreboard
+        // Можете использовать свой собственный код
+    }
+
+    public boolean isShowNumbers() {
+        return showNumbers;
+    }
+
+    public void setShowNumbers(boolean showNumbers) {
+        this.showNumbers = showNumbers;
+    }
 }

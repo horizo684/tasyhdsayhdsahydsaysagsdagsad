@@ -1,402 +1,617 @@
-package com.amethyst.client;
+package com.amethyst.client.gui;
 
-import com.amethyst.client.modules.*;
+import com.amethyst.client.AmethystClient;
+import com.amethyst.client.modules.Module;
+import com.amethyst.client.modules.Module.Category;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL11;
+import org.lwjgl.input.Keyboard;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ModernClickGUI extends GuiScreen {
+public class ClickGUI extends GuiScreen {
 
-    private static final int SIDEBAR_W  = 110;
-    private static final int CARD_W     = 130;
-    private static final int CARD_H     = 72;
-    private static final int CARD_GAP   = 8;
-    private static final int GRID_PAD_X = 14;
-    private static final int GRID_PAD_Y = 10;
-    private static final int HEADER_H   = 32;
-
-    private int selectedCategory = 0;
-    private int scrollOffset     = 0;
-    private int maxScroll        = 0;
-    private int hoveredCard      = -1;
-
-    // ── Zoom animation ────────────────────────────────────────────────────────
-    private float animScale   = 0.85f;  // starts small
-    private float animAlpha   = 0.0f;   // starts transparent
-    private boolean closing   = false;
-    private long   openTime   = 0;
-
-    private static final float ANIM_SPEED = 0.12f;
-
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private List<ModuleCategory> categories = new ArrayList<>();
-
-    private static class ModuleCategory {
-        final String icon, name;
-        final List<Module> modules = new ArrayList<>();
-        ModuleCategory(String icon, String name) { this.icon=icon; this.name=name; }
+    private List<CategoryPanel> panels = new ArrayList<>();
+    private ModuleSettingsPanel settingsPanel = null;
+    
+    public ClickGUI() {
+        int startX = 20;
+        int startY = 20;
+        int panelSpacing = 140;
+        
+        int i = 0;
+        for (Category category : Category.values()) {
+            panels.add(new CategoryPanel(category, startX + (i * panelSpacing), startY));
+            i++;
+        }
     }
-
-    private static final int[]    CAT_ACCENT = { 0xFFFF4455, 0xFF44AAFF, 0xFFFFAA33, 0xFF44FF99 };
-    private static final String[] CAT_ICONS  = { "⚔", "✦", "⚙", "▣" };
 
     @Override
-    public void initGui() {
-        buildCategories();
-        scrollOffset = 0;
-        animScale  = 0.85f;
-        animAlpha  = 0.0f;
-        closing    = false;
-        openTime   = System.currentTimeMillis();
-    }
-
-    private void buildCategories() {
-        categories.clear();
-        ModuleCategory combat = new ModuleCategory(CAT_ICONS[0], "COMBAT");
-        ModuleCategory visual = new ModuleCategory(CAT_ICONS[1], "VISUAL");
-        ModuleCategory misc   = new ModuleCategory(CAT_ICONS[2], "MISC");
-        ModuleCategory hud    = new ModuleCategory(CAT_ICONS[3], "HUD");
-
-        for (Module m : AmethystClient.moduleManager.getModules()) {
-            if      (m instanceof HitDelayFix || m instanceof AutoSoup || m instanceof Refill)
-                combat.modules.add(m);
-            else if (m instanceof ModuleList || m instanceof ColorChanger || m instanceof Nametag
-                  || m instanceof Friends    || m instanceof FullBright)
-                visual.modules.add(m);
-            else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam
-                  || m instanceof AutoSprint  || m instanceof AsyncScreenshot)
-                misc.modules.add(m);
-            else if (m instanceof SoupCounter || m instanceof FPSCounter || m instanceof PingCounter
-                  || m instanceof Clock       || m instanceof CPSCounter  || m instanceof Saturation
-                  || m instanceof Scoreboard  || m instanceof CustomChat)
-                hud.modules.add(m);
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        drawDefaultBackground();
+        
+        // Draw all category panels
+        for (CategoryPanel panel : panels) {
+            panel.draw(mouseX, mouseY, partialTicks);
         }
-        categories.add(combat); categories.add(visual);
-        categories.add(misc);   categories.add(hud);
-    }
-
-    // ── Update animation each frame ───────────────────────────────────────────
-    @Override
-    public void updateScreen() {
-        if (!closing) {
-            animScale = lerp(animScale, 1.0f, ANIM_SPEED + 0.05f);
-            animAlpha = lerp(animAlpha, 1.0f, ANIM_SPEED + 0.05f);
-        } else {
-            animScale = lerp(animScale, 0.80f, ANIM_SPEED);
-            animAlpha = lerp(animAlpha, 0.0f,  ANIM_SPEED);
-            if (animAlpha < 0.03f) {
-                mc.displayGuiScreen(null);
-            }
+        
+        // Draw settings panel on top
+        if (settingsPanel != null) {
+            settingsPanel.draw(mouseX, mouseY, partialTicks);
         }
+        
+        super.drawScreen(mouseX, mouseY, partialTicks);
     }
-
-    private float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
     @Override
-    public void onGuiClosed() { /* nothing extra needed */ }
-
-    // ── Draw ──────────────────────────────────────────────────────────────────
+    protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
+        // Check settings panel first (it's on top)
+        if (settingsPanel != null) {
+            if (settingsPanel.mouseClicked(mouseX, mouseY, button)) {
+                return; // Consumed by settings panel
+            }
+        }
+        
+        // Check category panels
+        for (CategoryPanel panel : panels) {
+            panel.mouseClicked(mouseX, mouseY, button);
+        }
+        
+        super.mouseClicked(mouseX, mouseY, button);
+    }
 
     @Override
-    public void drawScreen(int mx, int my, float pt) {
-        ScaledResolution sr = new ScaledResolution(mc);
-        int W = sr.getScaledWidth(), H = sr.getScaledHeight();
-
-        // Dimmed background (fade with alpha)
-        int bgAlpha = (int)(animAlpha * 0xDD);
-        drawGradientRect(0, 0, W, H, (bgAlpha << 24) | 0x000000, (bgAlpha << 24) | 0x050510);
-
-        // Apply zoom+fade transform centred on screen
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(W / 2f, H / 2f, 0);
-        GlStateManager.scale(animScale, animScale, 1f);
-        GlStateManager.translate(-W / 2f, -H / 2f, 0);
-        // Alpha via color (will affect drawString etc.)
-        GlStateManager.color(1f, 1f, 1f, Math.min(1f, animAlpha));
-
-        int panelX = W / 2 - 230, panelY = H / 2 - 140;
-        int panelW = 460,         panelH = 280;
-        drawRoundedPanel(panelX, panelY, panelW, panelH);
-
-        drawSidebar(panelX, panelY, panelH, mx, my);
-
-        int contentX = panelX + SIDEBAR_W;
-        int contentW = panelW - SIDEBAR_W;
-        drawContentArea(contentX, panelY, contentW, panelH, mx, my);
-
-        drawRect(panelX + SIDEBAR_W - 1, panelY + 8, panelX + SIDEBAR_W, panelY + panelH - 8, 0x22FFFFFF);
-
-        GlStateManager.color(1f, 1f, 1f, 1f);
-        GlStateManager.popMatrix();
-
-        super.drawScreen(mx, my, pt);
-    }
-
-    // ── Sidebar ───────────────────────────────────────────────────────────────
-
-    private void drawSidebar(int px, int py, int pH, int mx, int my) {
-        ColorChanger cc = getColorChanger();
-
-        String logo = "AMETHYST";
-        int lx = px + SIDEBAR_W / 2 - mc.fontRendererObj.getStringWidth(logo) / 2;
-        for (int i = 0; i < logo.length(); i++) {
-            int col = cc != null && cc.isEnabled()
-                    ? ColorChanger.getPresetColor(cc.getPresetIndex(), i, logo.length(), cc.getRainbowSpeed())
-                    : 0xFF9966FF;
-            mc.fontRendererObj.drawStringWithShadow(String.valueOf(logo.charAt(i)), lx, py + 8, col);
-            lx += mc.fontRendererObj.getCharWidth(logo.charAt(i));
+    protected void mouseReleased(int mouseX, int mouseY, int state) {
+        for (CategoryPanel panel : panels) {
+            panel.mouseReleased(mouseX, mouseY, state);
         }
-        mc.fontRendererObj.drawString("CLIENT",
-                px + SIDEBAR_W / 2 - mc.fontRendererObj.getStringWidth("CLIENT") / 2, py + 18, 0x66FFFFFF);
-
-        int accentCol = cc != null && cc.isEnabled()
-                ? ColorChanger.getPresetColor(cc.getPresetIndex(), 0, 1, cc.getRainbowSpeed())
-                : CAT_ACCENT[selectedCategory];
-        drawGradientRect(px + 12, py + 27, px + SIDEBAR_W - 12, py + 28,
-                accentCol & 0x00FFFFFF, accentCol);
-
-        int btnY = py + 38, btnH = 22, btnGap = 3;
-        for (int i = 0; i < categories.size(); i++) {
-            ModuleCategory cat = categories.get(i);
-            boolean sel = i == selectedCategory;
-            boolean hov = mx >= px+6 && mx <= px+SIDEBAR_W-6 && my >= btnY && my <= btnY+btnH;
-            int accent = CAT_ACCENT[i];
-
-            if (sel) {
-                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+btnH, accent & 0x00FFFFFF | 0x30000000);
-                drawRect(px+6, btnY, px+8, btnY+btnH, accent);
-                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+1, accent & 0x00FFFFFF | 0x88000000);
-            } else if (hov) {
-                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+btnH, 0x18FFFFFF);
-            }
-
-            String label = cat.icon + " " + cat.name;
-            int textCol = sel ? 0xFFFFFFFF : (hov ? 0xCCFFFFFF : 0x77AABBCC);
-            mc.fontRendererObj.drawStringWithShadow(label, px+14, btnY+7, textCol);
-            mc.fontRendererObj.drawString(String.valueOf(cat.modules.size()),
-                    px+SIDEBAR_W-16, btnY+7, sel ? accent : 0x44AAAAAA);
-
-            btnY += btnH + btnGap;
+        
+        if (settingsPanel != null) {
+            settingsPanel.mouseReleased(mouseX, mouseY, state);
         }
-
-        mc.fontRendererObj.drawString("beta",
-                px + SIDEBAR_W/2 - mc.fontRendererObj.getStringWidth("beta")/2,
-                py + pH - 12, 0x33FFFFFF);
+        
+        super.mouseReleased(mouseX, mouseY, state);
     }
-
-    // ── Content area ──────────────────────────────────────────────────────────
-
-    private void drawContentArea(int cx, int cy, int cw, int ch, int mx, int my) {
-        ModuleCategory cat = categories.get(selectedCategory);
-        int accent = CAT_ACCENT[selectedCategory];
-        ColorChanger cc = getColorChanger();
-
-        mc.fontRendererObj.drawStringWithShadow(cat.name, cx + GRID_PAD_X, cy + 10, accent);
-        mc.fontRendererObj.drawString(cat.modules.size() + " modules", cx + GRID_PAD_X, cy + 21, 0x44AABBCC);
-
-        int gridTop   = cy + HEADER_H;
-        int gridH     = ch - HEADER_H - 4;
-        int cols      = Math.max(1, (cw - GRID_PAD_X*2 + CARD_GAP) / (CARD_W + CARD_GAP));
-
-        hoveredCard = -1;
-        int row = 0, col = 0;
-
-        for (int i = 0; i < cat.modules.size(); i++) {
-            Module m = cat.modules.get(i);
-            int cardX = cx + GRID_PAD_X + col * (CARD_W + CARD_GAP);
-            int cardY = gridTop + row * (CARD_H + CARD_GAP) - scrollOffset;
-
-            if (cardY + CARD_H >= gridTop && cardY <= gridTop + gridH) {
-                boolean hov = mx >= cardX && mx <= cardX + CARD_W
-                           && my >= cardY && my <= cardY + CARD_H
-                           && my >= gridTop && my <= gridTop + gridH;
-                if (hov) hoveredCard = i;
-                drawModuleCard(cardX, cardY, m, i, cat.modules.size(), accent, cc, hov);
-            }
-            col++;
-            if (col >= cols) { col = 0; row++; }
-        }
-
-        int totalRows = (cat.modules.size() + cols - 1) / cols;
-        maxScroll = Math.max(0, totalRows * (CARD_H + CARD_GAP) - gridH - CARD_GAP);
-
-        if (maxScroll > 0) {
-            int sbX = cx + cw - 5, sbH = gridH;
-            drawRect(sbX, gridTop, sbX+3, gridTop+sbH, 0x22FFFFFF);
-            float frac = (float) scrollOffset / maxScroll;
-            int   tH   = Math.max(20, sbH - (int)(frac * (sbH - 30)));
-            int   tY   = gridTop + (int)(frac * (sbH - tH));
-            drawRect(sbX, tY, sbX+3, tY+tH, accent & 0x00FFFFFF | 0xAA000000);
-        }
-    }
-
-    private void drawModuleCard(int x, int y, Module m, int idx, int total,
-                                 int catAccent, ColorChanger cc, boolean hov) {
-        boolean enabled = m.isEnabled();
-        int cardAccent = cc != null && cc.isEnabled()
-                ? ColorChanger.getPresetColor(cc.getPresetIndex(), idx, total, cc.getRainbowSpeed())
-                : catAccent;
-
-        if (m instanceof AsyncScreenshot) cardAccent = cc != null && cc.isEnabled() ? cardAccent : 0xFFDD44FF;
-
-        drawRect(x, y, x+CARD_W, y+CARD_H,
-                enabled ? (cardAccent & 0x00FFFFFF | 0x28000000) : 0x18FFFFFF);
-        if (hov) drawRect(x, y, x+CARD_W, y+CARD_H, 0x14FFFFFF);
-
-        // Top accent strip
-        if (enabled) {
-            for (int i = 0; i < CARD_W; i++) {
-                int c = cc != null && cc.isEnabled()
-                        ? ColorChanger.getPresetColor(cc.getPresetIndex(), idx*CARD_W+i, total*CARD_W, cc.getRainbowSpeed())
-                        : cardAccent;
-                drawRect(x+i, y, x+i+1, y+3, c | 0xFF000000);
-            }
-        } else {
-            drawRect(x, y, x+CARD_W, y+3, 0x33FFFFFF);
-        }
-
-        drawHollowRect(x, y, x+CARD_W, y+CARD_H,
-                enabled ? (cardAccent & 0x00FFFFFF | 0x55000000) : 0x22FFFFFF);
-
-        mc.fontRendererObj.drawStringWithShadow(m.getName(), x+8, y+8,
-                enabled ? 0xFFFFFFFF : 0xAABBCCDD);
-
-        // Description (truncated)
-        String desc = m.getDescription();
-        while (mc.fontRendererObj.getStringWidth(desc + "..") > CARD_W - 16 && desc.length() > 0)
-            desc = desc.substring(0, desc.length()-1);
-        if (!desc.equals(m.getDescription())) desc += "..";
-        mc.fontRendererObj.drawString(desc, x+8, y+22, 0x55AABBCC);
-
-        if (m instanceof AsyncScreenshot)
-            mc.fontRendererObj.drawString("§5F2 §8→ §7screenshot", x+8, y+33, 0xFF777788);
-
-        // ON/OFF pill
-        String status = enabled ? "ON" : "OFF";
-        int pillColor = enabled ? cardAccent : 0x44AAAAAA;
-        int pillW = mc.fontRendererObj.getStringWidth(status) + 8;
-        drawRect(x+8, y+CARD_H-18, x+8+pillW, y+CARD_H-6,
-                (pillColor & 0x00FFFFFF) | (enabled ? 0x44000000 : 0x22000000));
-        drawHollowRect(x+8, y+CARD_H-18, x+8+pillW, y+CARD_H-6,
-                (pillColor & 0x00FFFFFF) | 0xBB000000);
-        mc.fontRendererObj.drawString(status, x+12, y+CARD_H-15,
-                enabled ? pillColor | 0xFF000000 : 0x66AAAAAA);
-
-        // RMB hint for modules that have a settings popup
-        if (hasSettingsPopup(m)) {
-            String hint = "RMB ▸";
-            mc.fontRendererObj.drawString(hint,
-                    x + CARD_W - mc.fontRendererObj.getStringWidth(hint) - 6,
-                    y + CARD_H - 15,
-                    hov ? 0xAAFFFFFF : 0x44FFFFFF);
-        }
-    }
-
-    /** Modules that open a settings GUI on RMB */
-    private boolean hasSettingsPopup(Module m) {
-        return m instanceof ColorChanger || m instanceof Nametag
-            || m instanceof Scoreboard  || m instanceof CustomChat;
-    }
-
-    // ── Rounded panel ─────────────────────────────────────────────────────────
-
-    private void drawRoundedPanel(int x, int y, int w, int h) {
-        drawRect(x+3, y,   x+w-3, y+h, 0xEE0A0C14);
-        drawRect(x,   y+3, x+w,   y+h-3, 0xEE0A0C14);
-        drawHollowRect(x+1, y+1, x+w-1, y+h-1, 0x18FFFFFF);
-        drawHollowRect(x+2, y+2, x+w-2, y+h-2, 0x10FFFFFF);
-    }
-
-    private void drawHollowRect(int l, int t, int r, int b, int color) {
-        drawRect(l, t, r, t+1, color); drawRect(l, b-1, r, b, color);
-        drawRect(l, t, l+1, b, color); drawRect(r-1, t, r, b, color);
-    }
-
-    private ColorChanger getColorChanger() {
-        return (ColorChanger) AmethystClient.moduleManager.getModuleByName("ColorChanger");
-    }
-
-    // ── Input ─────────────────────────────────────────────────────────────────
 
     @Override
-    protected void mouseClicked(int mx, int my, int btn) throws IOException {
-        ScaledResolution sr = new ScaledResolution(mc);
-        int W = sr.getScaledWidth(), H = sr.getScaledHeight();
-        int panelX = W/2-230, panelY = H/2-140;
-        int panelW = 460,     panelH = 280;
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (keyCode == Keyboard.KEY_ESCAPE) {
+            mc.displayGuiScreen(null);
+            return;
+        }
+        
+        if (settingsPanel != null && settingsPanel.isWaitingForKey()) {
+            settingsPanel.setKey(keyCode);
+            return;
+        }
+        
+        super.keyTyped(typedChar, keyCode);
+    }
 
-        // Sidebar category buttons
-        int btnY = panelY+38, btnH = 22;
-        for (int i = 0; i < categories.size(); i++) {
-            if (mx >= panelX+6 && mx <= panelX+SIDEBAR_W-6 && my >= btnY && my <= btnY+btnH) {
-                selectedCategory = i; scrollOffset = 0; return;
+    @Override
+    public boolean doesGuiPauseGame() {
+        return false;
+    }
+
+    public void openSettings(Module module, int x, int y) {
+        settingsPanel = new ModuleSettingsPanel(module, x, y);
+    }
+
+    public void closeSettings() {
+        settingsPanel = null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CATEGORY PANEL
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    class CategoryPanel {
+        private Category category;
+        private int x, y;
+        private int width = 120;
+        private int headerHeight = 20;
+        private boolean dragging = false;
+        private int dragOffsetX, dragOffsetY;
+        private boolean expanded = true;
+        private float expandProgress = 1.0f;
+        
+        private List<ModuleButton> moduleButtons = new ArrayList<>();
+
+        public CategoryPanel(Category category, int x, int y) {
+            this.category = category;
+            this.x = x;
+            this.y = y;
+            
+            for (Module module : AmethystClient.moduleManager.getModulesInCategory(category)) {
+                moduleButtons.add(new ModuleButton(module));
             }
-            btnY += btnH + 3;
         }
 
-        // Cards
-        ModuleCategory cat = categories.get(selectedCategory);
-        int cx      = panelX + SIDEBAR_W;
-        int cw      = panelW - SIDEBAR_W;
-        int gridTop = panelY + HEADER_H;
-        int gridH   = panelH - HEADER_H - 4;
-        int cols    = Math.max(1, (cw - GRID_PAD_X*2 + CARD_GAP) / (CARD_W + CARD_GAP));
+        public void draw(int mouseX, int mouseY, float partialTicks) {
+            Minecraft mc = Minecraft.getMinecraft();
+            
+            // Animate expand/collapse
+            float targetProgress = expanded ? 1.0f : 0.0f;
+            if (expandProgress != targetProgress) {
+                float speed = 0.15f;
+                if (expandProgress < targetProgress) {
+                    expandProgress = Math.min(expandProgress + speed, targetProgress);
+                } else {
+                    expandProgress = Math.max(expandProgress - speed, targetProgress);
+                }
+            }
+            
+            // Header
+            boolean headerHovered = mouseX >= x && mouseX <= x + width && 
+                                   mouseY >= y && mouseY <= y + headerHeight;
+            int headerColor = headerHovered ? 0xFF3A3A3A : 0xFF2A2A2A;
+            drawRect(x, y, x + width, y + headerHeight, headerColor);
+            
+            // Category name
+            String name = category.name();
+            int nameWidth = mc.fontRendererObj.getStringWidth(name);
+            mc.fontRendererObj.drawStringWithShadow(name, 
+                x + width / 2 - nameWidth / 2, 
+                y + 6, 0xFFFFFFFF);
+            
+            // Draw expand indicator
+            String indicator = expanded ? "▼" : "▶";
+            mc.fontRendererObj.drawStringWithShadow(indicator, x + width - 12, y + 6, 0xFFAAAAAA);
+            
+            // Modules (with animation)
+            if (expandProgress > 0.01f) {
+                int currentY = y + headerHeight;
+                int visibleModules = (int)(moduleButtons.size() * expandProgress);
+                
+                for (int i = 0; i < visibleModules; i++) {
+                    ModuleButton btn = moduleButtons.get(i);
+                    float alpha = (i == visibleModules - 1) ? 
+                        (expandProgress * moduleButtons.size() - visibleModules) : 1.0f;
+                    
+                    btn.draw(x, currentY, width, mouseX, mouseY, alpha);
+                    currentY += 16;
+                }
+            }
+            
+            // Border
+            drawHollowRect(x, y, x + width, y + getHeight(), 0xFF000000);
+        }
 
-        int row = 0, col = 0;
-        for (int i = 0; i < cat.modules.size(); i++) {
-            Module m = cat.modules.get(i);
-            int cardX = cx + GRID_PAD_X + col * (CARD_W + CARD_GAP);
-            int cardY = gridTop + row * (CARD_H + CARD_GAP) - scrollOffset;
-
-            if (mx >= cardX && mx <= cardX+CARD_W && my >= cardY && my <= cardY+CARD_H
-             && my >= gridTop && my <= gridTop+gridH) {
-                if (btn == 0) {
-                    m.toggle();
-                    AmethystClient.moduleManager.saveConfig();
-                } else if (btn == 1) {
-                    // Right click → open settings popup
-                    if      (m instanceof ColorChanger) mc.displayGuiScreen(new ColorPickerGUI(this, (ColorChanger) m));
-                    else if (m instanceof Nametag)      mc.displayGuiScreen(new NametagPickerGUI(this, (Nametag) m));
-                    else if (m instanceof Scoreboard)   mc.displayGuiScreen(new ScoreboardPickerGUI(this, (Scoreboard) m));
-                    else if (m instanceof CustomChat)   mc.displayGuiScreen(new CustomChatPickerGUI(this, (CustomChat) m));
+        public void mouseClicked(int mouseX, int mouseY, int button) {
+            // Header click
+            if (mouseX >= x && mouseX <= x + width && 
+                mouseY >= y && mouseY <= y + headerHeight) {
+                
+                if (button == 0) { // Left click - drag
+                    dragging = true;
+                    dragOffsetX = mouseX - x;
+                    dragOffsetY = mouseY - y;
+                } else if (button == 1) { // Right click - expand/collapse
+                    expanded = !expanded;
                 }
                 return;
             }
-            col++;
-            if (col >= cols) { col = 0; row++; }
+            
+            // Module clicks
+            if (expanded && expandProgress > 0.5f) {
+                int currentY = y + headerHeight;
+                for (ModuleButton btn : moduleButtons) {
+                    if (mouseX >= x && mouseX <= x + width && 
+                        mouseY >= currentY && mouseY <= currentY + 16) {
+                        
+                        if (button == 0) { // Left click - toggle
+                            btn.module.toggle();
+                        } else if (button == 1) { // Right click - settings
+                            openSettings(btn.module, mouseX, mouseY);
+                        }
+                        return;
+                    }
+                    currentY += 16;
+                }
+            }
         }
 
-        super.mouseClicked(mx, my, btn);
-    }
-
-    @Override
-    protected void keyTyped(char ch, int key) throws IOException {
-        if (key == 1) { // ESC
-            closing = true;
-            return;
+        public void mouseReleased(int mouseX, int mouseY, int state) {
+            if (dragging) {
+                x = mouseX - dragOffsetX;
+                y = mouseY - dragOffsetY;
+            }
+            dragging = false;
         }
-        super.keyTyped(ch, key);
+
+        private int getHeight() {
+            return headerHeight + (int)(moduleButtons.size() * 16 * expandProgress);
+        }
     }
 
-    @Override
-    public void handleMouseInput() throws IOException {
-        super.handleMouseInput();
-        int scroll = Mouse.getEventDWheel();
-        if (scroll != 0)
-            scrollOffset = Math.max(0, Math.min(scrollOffset + (scroll > 0 ? -25 : 25), maxScroll));
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MODULE BUTTON
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    class ModuleButton {
+        private Module module;
+        private float toggleAnimation = 0.0f;
+
+        public ModuleButton(Module module) {
+            this.module = module;
+            toggleAnimation = module.isEnabled() ? 1.0f : 0.0f;
+        }
+
+        public void draw(int x, int y, int width, int mouseX, int mouseY, float alpha) {
+            Minecraft mc = Minecraft.getMinecraft();
+            
+            // Animate toggle
+            float targetAnim = module.isEnabled() ? 1.0f : 0.0f;
+            if (toggleAnimation != targetAnim) {
+                float speed = 0.1f;
+                if (toggleAnimation < targetAnim) {
+                    toggleAnimation = Math.min(toggleAnimation + speed, targetAnim);
+                } else {
+                    toggleAnimation = Math.max(toggleAnimation - speed, targetAnim);
+                }
+            }
+            
+            // Background
+            boolean hovered = mouseX >= x && mouseX <= x + width && 
+                             mouseY >= y && mouseY <= y + 16;
+            
+            int bgColor;
+            if (module.isEnabled()) {
+                int enabledColor = interpolateColor(0xFF1E4D2B, 0xFF2EAD4B, toggleAnimation);
+                bgColor = hovered ? lighten(enabledColor, 0.1f) : enabledColor;
+            } else {
+                bgColor = hovered ? 0xFF353535 : 0xFF202020;
+            }
+            
+            // Apply alpha
+            int finalAlpha = (int)(alpha * 255) << 24;
+            bgColor = (bgColor & 0x00FFFFFF) | finalAlpha;
+            
+            drawRect(x, y, x + width, y + 16, bgColor);
+            
+            // Module name - с обрезкой если не помещается
+            String moduleName = module.getName();
+            int textColor = module.isEnabled() ? 0xFFFFFFFF : 0xFFAAAAAA;
+            textColor = (textColor & 0x00FFFFFF) | finalAlpha;
+            
+            // Обрезаем текст если он не помещается
+            int maxWidth = width - 8; // Отступ справа для кейбинда
+            if (module.getKey() != Keyboard.KEY_NONE) {
+                String keyName = Keyboard.getKeyName(module.getKey());
+                int keyWidth = mc.fontRendererObj.getStringWidth(keyName);
+                maxWidth = width - keyWidth - 12; // Больше отступ если есть кейбинд
+            }
+            
+            String displayName = moduleName;
+            int nameWidth = mc.fontRendererObj.getStringWidth(displayName);
+            
+            // Обрезаем текст если он слишком длинный
+            if (nameWidth > maxWidth) {
+                while (nameWidth > maxWidth - 10 && displayName.length() > 0) {
+                    displayName = displayName.substring(0, displayName.length() - 1);
+                    nameWidth = mc.fontRendererObj.getStringWidth(displayName + "...");
+                }
+                displayName = displayName + "...";
+            }
+            
+            mc.fontRendererObj.drawString(displayName, x + 4, y + 4, textColor);
+            
+            // Keybind indicator
+            if (module.getKey() != Keyboard.KEY_NONE) {
+                String keyName = Keyboard.getKeyName(module.getKey());
+                int keyWidth = mc.fontRendererObj.getStringWidth(keyName);
+                mc.fontRendererObj.drawString(keyName, x + width - keyWidth - 4, y + 4, 
+                    (0xFF666666 & 0x00FFFFFF) | finalAlpha);
+            }
+        }
     }
 
-    @Override
-    public boolean doesGuiPauseGame() { return false; }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MODULE SETTINGS PANEL
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    class ModuleSettingsPanel {
+        private Module module;
+        private int x, y;
+        private int width = 200;
+        private int height = 200;
+        private boolean waitingForKey = false;
+        
+        private Slider animationSpeedSlider;
+        private int selectedAnimation = 0;
+        private String[] animations = {"Slide", "Fade", "Scale", "Smooth", "Bounce"};
+        
+        public ModuleSettingsPanel(Module module, int x, int y) {
+            this.module = module;
+            
+            // Center panel on click position
+            ScaledResolution sr = new ScaledResolution(Minecraft.getMinecraft());
+            this.x = Math.min(Math.max(x - width / 2, 10), sr.getScaledWidth() - width - 10);
+            this.y = Math.min(Math.max(y - 20, 10), sr.getScaledHeight() - height - 10);
+            
+            // Initialize slider
+            animationSpeedSlider = new Slider("Animation Speed", 0.05f, 0.3f, 0.15f);
+        }
+
+        public void draw(int mouseX, int mouseY, float partialTicks) {
+            Minecraft mc = Minecraft.getMinecraft();
+            
+            // Background
+            drawRect(x, y, x + width, y + height, 0xEE1A1A1A);
+            drawHollowRect(x, y, x + width, y + height, 0xFF000000);
+            
+            // Header
+            drawRect(x, y, x + width, y + 20, 0xFF2A2A2A);
+            String title = module.getName() + " Settings";
+            int titleWidth = mc.fontRendererObj.getStringWidth(title);
+            
+            // Обрезаем заголовок если нужно
+            String displayTitle = title;
+            if (titleWidth > width - 30) {
+                while (titleWidth > width - 40 && displayTitle.length() > 0) {
+                    displayTitle = displayTitle.substring(0, displayTitle.length() - 1);
+                    titleWidth = mc.fontRendererObj.getStringWidth(displayTitle + "...");
+                }
+                displayTitle = displayTitle + "...";
+                titleWidth = mc.fontRendererObj.getStringWidth(displayTitle);
+            }
+            
+            mc.fontRendererObj.drawStringWithShadow(displayTitle, 
+                x + width / 2 - titleWidth / 2, 
+                y + 6, 0xFFFFFFFF);
+            
+            // Close button
+            boolean closeHovered = mouseX >= x + width - 18 && mouseX <= x + width - 3 &&
+                                  mouseY >= y + 3 && mouseY <= y + 17;
+            drawRect(x + width - 18, y + 3, x + width - 3, y + 17, 
+                closeHovered ? 0xFFFF5555 : 0xFF883333);
+            mc.fontRendererObj.drawString("×", x + width - 13, y + 6, 0xFFFFFFFF);
+            
+            int currentY = y + 30;
+            
+            // Keybind
+            currentY = drawKeybindSection(mouseX, mouseY, currentY);
+            
+            // Animation type
+            currentY = drawAnimationSection(mouseX, mouseY, currentY);
+            
+            // Animation speed slider
+            currentY += 5;
+            animationSpeedSlider.draw(x + 10, currentY, width - 20, mouseX, mouseY);
+            currentY += 30;
+        }
+
+        private int drawKeybindSection(int mouseX, int mouseY, int startY) {
+            Minecraft mc = Minecraft.getMinecraft();
+            
+            mc.fontRendererObj.drawString("Keybind:", x + 10, startY, 0xFFCCCCCC);
+            
+            int buttonY = startY + 12;
+            boolean keyButtonHovered = mouseX >= x + 10 && mouseX <= x + width - 10 &&
+                                      mouseY >= buttonY && mouseY <= buttonY + 20;
+            
+            int buttonColor = waitingForKey ? 0xFF4A4AFF : (keyButtonHovered ? 0xFF404040 : 0xFF303030);
+            drawRect(x + 10, buttonY, x + width - 10, buttonY + 20, buttonColor);
+            
+            String keyText = waitingForKey ? "Press any key..." : 
+                           (module.getKey() == Keyboard.KEY_NONE ? "None" : Keyboard.getKeyName(module.getKey()));
+            int keyTextWidth = mc.fontRendererObj.getStringWidth(keyText);
+            mc.fontRendererObj.drawStringWithShadow(keyText, 
+                x + width / 2 - keyTextWidth / 2, 
+                buttonY + 6, 0xFFFFFFFF);
+            
+            return buttonY + 25;
+        }
+
+        private int drawAnimationSection(int mouseX, int mouseY, int startY) {
+            Minecraft mc = Minecraft.getMinecraft();
+            
+            mc.fontRendererObj.drawString("Animation Type:", x + 10, startY, 0xFFCCCCCC);
+            
+            int currentY = startY + 12;
+            for (int i = 0; i < animations.length; i++) {
+                boolean hovered = mouseX >= x + 10 && mouseX <= x + width - 10 &&
+                                 mouseY >= currentY && mouseY <= currentY + 18;
+                boolean selected = i == selectedAnimation;
+                
+                int bgColor = selected ? 0xFF2EAD4B : (hovered ? 0xFF353535 : 0xFF252525);
+                drawRect(x + 10, currentY, x + width - 10, currentY + 18, bgColor);
+                
+                // Radio button
+                drawCircle(x + 18, currentY + 9, 4, selected ? 0xFF2EAD4B : 0xFF666666);
+                if (selected) {
+                    drawCircle(x + 18, currentY + 9, 2, 0xFFFFFFFF);
+                }
+                
+                mc.fontRendererObj.drawString(animations[i], x + 28, currentY + 5, 
+                    selected ? 0xFFFFFFFF : 0xFFAAAAAA);
+                
+                currentY += 18;
+            }
+            
+            return currentY + 5;
+        }
+
+        public boolean mouseClicked(int mouseX, int mouseY, int button) {
+            if (button == 0) {
+                // Close button
+                if (mouseX >= x + width - 18 && mouseX <= x + width - 3 &&
+                    mouseY >= y + 3 && mouseY <= y + 17) {
+                    closeSettings();
+                    return true;
+                }
+                
+                // Keybind button
+                int keyButtonY = y + 42;
+                if (mouseX >= x + 10 && mouseX <= x + width - 10 &&
+                    mouseY >= keyButtonY && mouseY <= keyButtonY + 20) {
+                    waitingForKey = !waitingForKey;
+                    return true;
+                }
+                
+                // Animation selection
+                int animStartY = y + 79;
+                for (int i = 0; i < animations.length; i++) {
+                    int btnY = animStartY + (i * 18);
+                    if (mouseX >= x + 10 && mouseX <= x + width - 10 &&
+                        mouseY >= btnY && mouseY <= btnY + 18) {
+                        selectedAnimation = i;
+                        return true;
+                    }
+                }
+                
+                // Slider
+                if (animationSpeedSlider.mouseClicked(mouseX, mouseY)) {
+                    return true;
+                }
+                
+                // Consume clicks inside panel
+                if (mouseX >= x && mouseX <= x + width && 
+                    mouseY >= y && mouseY <= y + height) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        public void mouseReleased(int mouseX, int mouseY, int state) {
+            animationSpeedSlider.mouseReleased();
+        }
+
+        public boolean isWaitingForKey() {
+            return waitingForKey;
+        }
+
+        public void setKey(int keyCode) {
+            if (keyCode == Keyboard.KEY_DELETE || keyCode == Keyboard.KEY_BACK) {
+                module.setKey(Keyboard.KEY_NONE);
+            } else {
+                module.setKey(keyCode);
+            }
+            waitingForKey = false;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SLIDER COMPONENT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    class Slider {
+        private String label;
+        private float min, max, value;
+        private boolean dragging = false;
+
+        public Slider(String label, float min, float max, float defaultValue) {
+            this.label = label;
+            this.min = min;
+            this.max = max;
+            this.value = defaultValue;
+        }
+
+        public void draw(int x, int y, int width, int mouseX, int mouseY) {
+            Minecraft mc = Minecraft.getMinecraft();
+            
+            // Label
+            mc.fontRendererObj.drawString(label, x, y, 0xFFCCCCCC);
+            
+            // Value
+            String valueText = String.format("%.2f", value);
+            mc.fontRendererObj.drawString(valueText, x + width - mc.fontRendererObj.getStringWidth(valueText), y, 0xFF00FF00);
+            
+            // Slider track
+            int trackY = y + 12;
+            drawRect(x, trackY, x + width, trackY + 4, 0xFF1A1A1A);
+            
+            // Slider fill
+            float percentage = (value - min) / (max - min);
+            int fillWidth = (int)(width * percentage);
+            drawRect(x, trackY, x + fillWidth, trackY + 4, 0xFF2EAD4B);
+            
+            // Slider handle
+            int handleX = x + fillWidth - 3;
+            boolean hovered = mouseX >= handleX && mouseX <= handleX + 6 &&
+                            mouseY >= trackY - 2 && mouseY <= trackY + 6;
+            drawRect(handleX, trackY - 2, handleX + 6, trackY + 6, 
+                hovered || dragging ? 0xFFFFFFFF : 0xFFCCCCCC);
+            
+            // Update value while dragging
+            if (dragging) {
+                float newPercentage = Math.max(0, Math.min(1, (mouseX - x) / (float)width));
+                value = min + (max - min) * newPercentage;
+            }
+        }
+
+        public boolean mouseClicked(int mouseX, int mouseY) {
+            dragging = true;
+            return true;
+        }
+
+        public void mouseReleased() {
+            dragging = false;
+        }
+
+        public float getValue() {
+            return value;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // UTILITY METHODS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private void drawHollowRect(int left, int top, int right, int bottom, int color) {
+        drawRect(left, top, right, top + 1, color);
+        drawRect(left, bottom - 1, right, bottom, color);
+        drawRect(left, top, left + 1, bottom, color);
+        drawRect(right - 1, top, right, bottom, color);
+    }
+
+    private void drawCircle(int x, int y, int radius, int color) {
+        float alpha = (color >> 24 & 0xFF) / 255.0F;
+        float red = (color >> 16 & 0xFF) / 255.0F;
+        float green = (color >> 8 & 0xFF) / 255.0F;
+        float blue = (color & 0xFF) / 255.0F;
+        
+        org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_BLEND);
+        org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_TEXTURE_2D);
+        org.lwjgl.opengl.GL11.glBlendFunc(org.lwjgl.opengl.GL11.GL_SRC_ALPHA, org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA);
+        org.lwjgl.opengl.GL11.glColor4f(red, green, blue, alpha);
+        org.lwjgl.opengl.GL11.glBegin(org.lwjgl.opengl.GL11.GL_TRIANGLE_FAN);
+        
+        for (int i = 0; i <= 360; i += 10) {
+            double angle = Math.toRadians(i);
+            org.lwjgl.opengl.GL11.glVertex2d(x + Math.sin(angle) * radius, y + Math.cos(angle) * radius);
+        }
+        
+        org.lwjgl.opengl.GL11.glEnd();
+        org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_TEXTURE_2D);
+        org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_BLEND);
+    }
+
+    private int interpolateColor(int color1, int color2, float ratio) {
+        int r1 = (color1 >> 16) & 0xFF;
+        int g1 = (color1 >> 8) & 0xFF;
+        int b1 = color1 & 0xFF;
+        
+        int r2 = (color2 >> 16) & 0xFF;
+        int g2 = (color2 >> 8) & 0xFF;
+        int b2 = color2 & 0xFF;
+        
+        int r = (int)(r1 + (r2 - r1) * ratio);
+        int g = (int)(g1 + (g2 - g1) * ratio);
+        int b = (int)(b1 + (b2 - b1) * ratio);
+        
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    private int lighten(int color, float amount) {
+        int r = Math.min(255, (int)(((color >> 16) & 0xFF) * (1 + amount)));
+        int g = Math.min(255, (int)(((color >> 8) & 0xFF) * (1 + amount)));
+        int b = Math.min(255, (int)((color & 0xFF) * (1 + amount)));
+        return (color & 0xFF000000) | (r << 16) | (g << 8) | b;
+    }
 }
