@@ -6,6 +6,7 @@ import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Keyboard;
 
 import com.amethyst.client.CustomChatPickerGUI;
+import com.amethyst.client.Module; // убедитесь, что импорт правильный
 
 public class CustomChat extends Module {
 
@@ -18,15 +19,18 @@ public class CustomChat extends Module {
     private float bgAlpha = 0.5f;
 
     public CustomChat() {
+        // Передаем параметры в конструктор базового класса
         super("CustomChat", "Movable chat with smooth animations", Keyboard.KEY_NONE, Category.RENDER);
     }
 
     @Override
     public void onEnable() {
+        // Ваш код при включении модуля
     }
 
     @Override
     public void onDisable() {
+        // Ваш код при отключении модуля
     }
 
     @SubscribeEvent

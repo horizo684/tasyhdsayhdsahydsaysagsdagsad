@@ -17,117 +17,57 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ColorChanger.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\AsyncScreenshot.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\AutoSoup.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\AutoSprint.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Clock.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CopyChat.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CPSCounter.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\FPSCounter.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Friends.java:4: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\FullBright.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\HitDelayFix.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ModuleList.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Nametag.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\NoHurtCam.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\NoJumpDelay.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\PingCounter.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Refill.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Saturation.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\SoupCounter.java:3: error: cannot find symbol
-import com.amethyst.client.Module;
-                          ^
-  symbol:   class Module
-  location: package com.amethyst.client
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\AmethystClient.java:59: error: cannot find symbol
-        Module m = moduleManager.getModuleByName(name);
-        ^
-  symbol:   class Module
-  location: class AmethystClient
+:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ScoreboardModule.java:11: error: cannot find symbol
+public class ScoreboardModule extends Module {
+                                      ^
+  symbol: class Module
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModuleManager.java:15: error: no suitable method found for add(ScoreboardModule)
+        modules.add(new ScoreboardModule());
+               ^
+    method Collection.add(Module) is not applicable
+      (argument mismatch; ScoreboardModule cannot be converted to Module)
+    method List.add(Module) is not applicable
+      (argument mismatch; ScoreboardModule cannot be converted to Module)
 C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ColorChanger.java:19: error: constructor Module in class Module cannot be applied to given types;
         super("ColorChanger", "Animated color presets");
         ^
   required: String,String,int,Category
   found: String,String
   reason: actual and formal argument lists differ in length
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDRenderer.java:88: error: cannot find symbol
-            List<Module> enabledModules = AmethystClient.moduleManager.getEnabledModules();
-                                                                      ^
-  symbol:   method getEnabledModules()
-  location: variable moduleManager of type ModuleManager
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:52: error: incompatible types: Module cannot be converted to ScoreboardModule
+            if (scoreboardObj != null && scoreboardObj instanceof ScoreboardModule) {
+                                         ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:53: error: incompatible types: Module cannot be converted to ScoreboardModule
+                ScoreboardModule sb = (ScoreboardModule) scoreboardObj;
+                                                         ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:80: error: incompatible types: Module cannot be converted to ScoreboardModule
+        if (moduleObj == null || !(moduleObj instanceof ScoreboardModule)) return;
+                                   ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:81: error: incompatible types: Module cannot be converted to ScoreboardModule
+        ScoreboardModule m = (ScoreboardModule) moduleObj;
+                                                ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:82: error: cannot find symbol
+        if (!m.isEnabled()) return;
+              ^
+  symbol:   method isEnabled()
+  location: variable m of type ScoreboardModule
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:160: error: incompatible types: Module cannot be converted to ScoreboardModule
+            if (moduleObj != null && moduleObj instanceof ScoreboardModule) {
+                                     ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:161: error: incompatible types: Module cannot be converted to ScoreboardModule
+                ScoreboardModule sb = (ScoreboardModule) moduleObj;
+                                                         ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:162: error: cannot find symbol
+                if (sb.isEnabled()) {
+                      ^
+  symbol:   method isEnabled()
+  location: variable sb of type ScoreboardModule
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:215: error: incompatible types: Module cannot be converted to ScoreboardModule
+                if (moduleObj != null && moduleObj instanceof ScoreboardModule) {
+                                         ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:216: error: incompatible types: Module cannot be converted to ScoreboardModule
+                    ScoreboardModule sb = (ScoreboardModule) moduleObj;
+                                                             ^
 C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\AsyncScreenshot.java:44: error: constructor Module in class Module cannot be applied to given types;
         super("AsyncScreenshot", "F2 screenshot with OPEN / COPY / EXPORT");
         ^
@@ -224,22 +164,43 @@ C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\mo
   required: String,String,int,Category
   found: String,String
   reason: actual and formal argument lists differ in length
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Refill.java:28: error: cannot find symbol
-        this.setKeyCode(Keyboard.KEY_Z);
-            ^
-  symbol: method setKeyCode(int)
 C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Saturation.java:20: error: constructor Module in class Module cannot be applied to given types;
         super("Saturation", "Centers health/armor bars and hides hunger");
         ^
   required: String,String,int,Category
   found: String,String
   reason: actual and formal argument lists differ in length
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ScoreboardModule.java:16: error: cannot find symbol
+        super("Scoreboard", "Custom scoreboard renderer", Keyboard.KEY_NONE, Category.RENDER);
+                                                                             ^
+  symbol:   variable Category
+  location: class ScoreboardModule
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ScoreboardModule.java:19: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ScoreboardModule.java:23: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ScoreboardModule.java:37: error: cannot find symbol
+        if (this.isEnabled() && event.type == RenderGameOverlayEvent.ElementType.PLAYER_LIST) {
+                ^
+  symbol: method isEnabled()
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\ScoreboardModule.java:44: error: cannot find symbol
+        if (!this.isEnabled()) return;
+                 ^
+  symbol: method isEnabled()
 C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\SoupCounter.java:11: error: constructor Module in class Module cannot be applied to given types;
         super("SoupCounter", "Shows soup count in inventory");
         ^
   required: String,String,int,Category
   found: String,String
   reason: actual and formal argument lists differ in length
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:26: error: incompatible types: Module cannot be converted to ScoreboardModule
+        if (moduleObj == null || !(moduleObj instanceof ScoreboardModule)) return;
+                                   ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:27: error: incompatible types: Module cannot be converted to ScoreboardModule
+        ScoreboardModule mod = (ScoreboardModule) moduleObj;
+                                                  ^
 C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ScoreboardRenderer.java:91: error: cannot find symbol
         return team.getColorPrefix() + playerName + team.getColorSuffix();
                    ^
@@ -250,6 +211,18 @@ C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\Sc
                                                         ^
   symbol:   method getColorSuffix()
   location: variable team of type Team
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\VanillaScoreboardSuppressor.java:13: error: incompatible types: Module cannot be converted to ScoreboardModule
+        if (moduleObj == null || !(moduleObj instanceof ScoreboardModule)) return;
+                                   ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\VanillaScoreboardSuppressor.java:14: error: incompatible types: Module cannot be converted to ScoreboardModule
+        ScoreboardModule mod = (ScoreboardModule) moduleObj;
+                                                  ^
+C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\VanillaScoreboardSuppressor.java:16: error: cannot find symbol
+        if (mod != null && mod.isEnabled()) {
+                              ^
+  symbol:   method isEnabled()
+  location: variable mod of type ScoreboardModule
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
 43 errors
  FAILED
 
@@ -264,4 +237,4 @@ Run with --stacktrace option to get the stack trace. Run with --info or --debug 
 
 BUILD FAILED
 
-Total time: 22.565 secs
+Total time: 13.047 secs

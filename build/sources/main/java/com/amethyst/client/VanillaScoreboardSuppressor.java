@@ -1,7 +1,7 @@
 package com.amethyst.client;
 
 import com.amethyst.client.modules.ScoreboardModule;
-import com.amethyst.client.modules.Module;
+import com.amethyst.client.Module;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 

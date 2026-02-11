@@ -1,7 +1,7 @@
 package com.amethyst.client;
 
 import com.amethyst.client.modules.CustomChat;
-import com.amethyst.client.modules.Module;
+import com.amethyst.client.Module;
 import com.amethyst.client.modules.ScoreboardModule;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;

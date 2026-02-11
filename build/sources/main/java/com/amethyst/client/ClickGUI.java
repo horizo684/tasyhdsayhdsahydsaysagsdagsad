@@ -1,6 +1,6 @@
 package com.amethyst.client;
 
-import com.amethyst.client.modules.Module;
+import com.amethyst.client.Module;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Keyboard;
 

@@ -1,6 +1,5 @@
 package com.amethyst.client;
 
-import com.amethyst.client.modules.Module;
 import com.amethyst.client.modules.ScoreboardModule;
 import com.amethyst.client.modules.CustomChat;
 
@@ -19,6 +18,17 @@ public class ModuleManager {
 
     public List<Module> getModules() {
         return modules;
+    }
+
+    // Добавил этот метод
+    public List<Module> getEnabledModules() {
+        List<Module> enabled = new ArrayList<>();
+        for (Module module : modules) {
+            if (module.isEnabled()) {
+                enabled.add(module);
+            }
+        }
+        return enabled;
     }
 
     public Module getModuleByName(String name) {
