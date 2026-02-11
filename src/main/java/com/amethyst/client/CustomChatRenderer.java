@@ -1,186 +1,100 @@
 package com.amethyst.client;
 
 import com.amethyst.client.modules.CustomChat;
+import com.amethyst.client.modules.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ChatLine;
-import net.minecraft.client.gui.GuiNewChat;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.util.IChatComponent;
 
-import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class CustomChatRenderer {
 
-    private final Minecraft mc = Minecraft.getMinecraft();
-    private Field drawnChatLines = null;
+    private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm");
 
-    // Для fade-in анимации: храним время появления каждой строки
-    // key = updatedCounter строки, value = System.currentTimeMillis() когда она была добавлена
-    private final java.util.LinkedHashMap<Integer, Long> lineAppearTimes = new java.util.LinkedHashMap<>();
-
-    public CustomChatRenderer() {
-        // Рефлексия для доступа к drawnChatLines
-        for (String fn : new String[]{"drawnChatLines", "field_146252_h"}) {
-            try {
-                drawnChatLines = GuiNewChat.class.getDeclaredField(fn);
-                drawnChatLines.setAccessible(true);
-                break;
-            } catch (Exception ignored) {}
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGH)
-    public void onRenderOverlay(RenderGameOverlayEvent.Pre event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.CHAT) return;
-
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-        if (mod == null || !mod.isEnabled()) return;
-
-        // Отменяем стандартный чат
-        event.setCanceled(true);
-
-        // Рисуем наш чат только когда чат-GUI закрыт
-        // (когда открыт — Minecraft рисует его сам через GuiChat)
-        if (mc.currentScreen == null || !(mc.currentScreen instanceof net.minecraft.client.gui.GuiChat)) {
-            renderCustomChat(mod);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void renderCustomChat(CustomChat mod) {
-        if (drawnChatLines == null || mc.ingameGUI == null) return;
-
-        GuiNewChat chatGui = mc.ingameGUI.getChatGUI();
-        if (chatGui == null) return;
-
-        List<ChatLine> lines;
-        try {
-            lines = (List<ChatLine>) drawnChatLines.get(chatGui);
-        } catch (Exception e) {
+    public static void renderCustomChat(ScaledResolution sr, int updateCounter) {
+        Minecraft mc = Minecraft.getMinecraft();
+        
+        if (mc.gameSettings.chatVisibility == net.minecraft.entity.player.EntityPlayer.EnumChatVisibility.HIDDEN) {
             return;
         }
-        if (lines == null || lines.isEmpty()) return;
 
-        int x     = HUDConfig.getChatX();
-        int y     = HUDConfig.getChatY();
+        FontRenderer fontRenderer = mc.fontRendererObj;
+        int screenWidth = sr.getScaledWidth();
+        int screenHeight = sr.getScaledHeight();
+
+        List<String> chatLines = mc.ingameGUI.getChatGUI().getSentMessages();
+        
+        if (chatLines.isEmpty()) {
+            return;
+        }
+
+        Module moduleObj = AmethystClient.moduleManager.getModuleByName("CustomChat");
+        if (moduleObj == null || !(moduleObj instanceof CustomChat)) return;
+        CustomChat mod = (CustomChat) moduleObj;
+        if (!mod.isEnabled()) return;
+
+        int chatX = 2;
+        int chatY = screenHeight - 40;
+
+        int chatWidth = 320;
+        int chatHeight = 180;
+
         float scale = mod.getScale();
         int maxLines = mod.getMaxMessages();
-        int lineH = (int)(10 * scale);
-        int updateCounter = mc.ingameGUI.getUpdateCounter();
 
-        // Берём последние maxLines строк
-        int count = Math.min(lines.size(), maxLines);
-        List<ChatLine> visible = new ArrayList<>(lines.subList(0, count));
+        int displayLines = Math.min(chatLines.size(), maxLines);
 
-        // Регистрируем время появления новых строк
-        for (ChatLine cl : visible) {
-            int key = cl.getUpdatedCounter();
-            if (!lineAppearTimes.containsKey(key)) {
-                lineAppearTimes.put(key, System.currentTimeMillis());
-            }
-        }
-        // Чистим старые
-        if (lineAppearTimes.size() > 200) {
-            java.util.Iterator<Integer> it = lineAppearTimes.keySet().iterator();
-            while (lineAppearTimes.size() > 100 && it.hasNext()) { it.next(); it.remove(); }
-        }
+        org.lwjgl.opengl.GL11.glPushMatrix();
+        org.lwjgl.opengl.GL11.glScalef(scale, scale, 1.0f);
 
-        GlStateManager.pushMatrix();
-        GlStateManager.scale(scale, scale, 1f);
+        int scaledX = (int) (chatX / scale);
+        int scaledY = (int) ((chatY - displayLines * 9) / scale);
 
-        int sx = (int)(x / scale);
-        int sy = (int)(y / scale);
+        int lineY = scaledY + displayLines * 9;
 
-        // Ширина чата (примерно)
-        int chatW = (int)(320 / scale);
+        for (int i = 0; i < displayLines; i++) {
+            String message = chatLines.get(i);
+            lineY -= 9;
 
-        // Рисуем строки снизу вверх
-        for (int i = 0; i < count; i++) {
-            ChatLine cl = visible.get(i);
-            int lineAge = updateCounter - cl.getUpdatedCounter();
-
-            // Ванильный фейд: 200 тиков (~10 сек)
-            float vanillaAlpha;
-            if (lineAge > 200) continue; // слишком старое
-            vanillaAlpha = lineAge < 100 ? 1.0f : 1.0f - (lineAge - 100) / 100.0f;
-            vanillaAlpha = Math.max(0f, Math.min(1f, vanillaAlpha));
-
-            // Плавное появление (fade-in за 200мс)
-            float fadeIn = 1.0f;
+            int textAlpha = 255;
             if (mod.isFadeMessages()) {
-                Long appeared = lineAppearTimes.get(cl.getUpdatedCounter());
-                if (appeared != null) {
-                    long elapsed = System.currentTimeMillis() - appeared;
-                    fadeIn = Math.min(1.0f, elapsed / 200.0f);
-                    // Easing: smooth step
-                    fadeIn = fadeIn * fadeIn * (3f - 2f * fadeIn);
-                }
+                float alpha = 0.5f + 0.5f * i / (float) displayLines;
+                textAlpha = (int) (alpha * 255);
             }
 
-            float alpha = vanillaAlpha * fadeIn;
-            if (alpha <= 0.01f) continue;
-
-            int rowY = sy - (i + 1) * 10;
-
-            // Фон
             if (mod.isShowBackground()) {
-                int bgA = (int)(mod.getBgAlpha() * alpha * 255);
-                if (bgA > 0) drawRect(sx - 1, rowY - 1, sx + chatW, rowY + 9,
-                        (bgA << 24) | 0x000000);
+                int bgAlpha = (int) (mod.getBgAlpha() * textAlpha);
+                int bgColor = (bgAlpha << 24) | 0x000000;
+                
+                int messageWidth = fontRenderer.getStringWidth(message);
+                net.minecraft.client.gui.Gui.drawRect(
+                    scaledX - 2,
+                    lineY - 1,
+                    scaledX + messageWidth + 2,
+                    lineY + 9,
+                    bgColor
+                );
             }
 
-            // Текст
-            String text = cl.getChatComponent().getFormattedText();
-
-            // Timestamp
+            String timestamp = "";
             if (mod.isShowTimestamps()) {
-                String ts = new SimpleDateFormat("HH:mm").format(new Date()) + " ";
-                text = "§8" + ts + "§r" + text;
+                timestamp = "§7[" + TIME_FORMAT.format(new Date()) + "] §r";
             }
 
-            int textAlpha = (int)(alpha * 255);
-            // drawStringWithShadow не поддерживает прозрачность напрямую —
-            // используем GlStateManager.color для управления альфой
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-            GlStateManager.color(1f, 1f, 1f, alpha);
+            String fullMessage = timestamp + message;
 
-            mc.fontRendererObj.drawStringWithShadow(text, sx, rowY,
-                    (textAlpha << 24) | (mod.getTextColor() & 0x00FFFFFF));
-
-            GlStateManager.color(1f, 1f, 1f, 1f);
+            fontRenderer.drawStringWithShadow(
+                fullMessage,
+                scaledX,
+                lineY,
+                (textAlpha << 24) | (mod.getTextColor() & 0x00FFFFFF)
+            );
         }
 
-        GlStateManager.popMatrix();
-    }
-
-    private void drawRect(int x1, int y1, int x2, int y2, int color) {
-        float a = (float)((color >> 24) & 0xFF) / 255f;
-        float r = (float)((color >> 16) & 0xFF) / 255f;
-        float g = (float)((color >>  8) & 0xFF) / 255f;
-        float b = (float)( color        & 0xFF) / 255f;
-
-        GlStateManager.enableBlend();
-        GlStateManager.disableTexture2D();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.color(r, g, b, a);
-
-        net.minecraft.client.renderer.Tessellator ts = net.minecraft.client.renderer.Tessellator.getInstance();
-        net.minecraft.client.renderer.WorldRenderer wr = ts.getWorldRenderer();
-        wr.begin(7, net.minecraft.client.renderer.vertex.DefaultVertexFormats.POSITION);
-        wr.pos(x1, y2, 0).endVertex();
-        wr.pos(x2, y2, 0).endVertex();
-        wr.pos(x2, y1, 0).endVertex();
-        wr.pos(x1, y1, 0).endVertex();
-        ts.draw();
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
+        org.lwjgl.opengl.GL11.glPopMatrix();
     }
 }

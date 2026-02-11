@@ -1,153 +1,93 @@
 package com.amethyst.client;
 
-import com.amethyst.client.modules.Scoreboard;
+import com.amethyst.client.modules.ScoreboardModule;
+import com.amethyst.client.modules.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.scoreboard.ScoreObjective;
-import net.minecraft.scoreboard.ScorePlayerTeam;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.scoreboard.Score;
-import net.minecraft.world.WorldSettings;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.scoreboard.ScoreObjective;
+import net.minecraft.scoreboard.Scoreboard;
+import net.minecraft.scoreboard.Team;
+import net.minecraft.util.EnumChatFormatting;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ScoreboardRenderer {
 
-    private final Minecraft mc = Minecraft.getMinecraft();
+    public static void renderScoreboard(Minecraft mc,
+                                       net.minecraft.scoreboard.Scoreboard scoreboard,
+                                       net.minecraft.scoreboard.ScoreObjective objective,
+                                       int x, int y) {
+        Module moduleObj = AmethystClient.moduleManager.getModuleByName("Scoreboard");
+        if (moduleObj == null || !(moduleObj instanceof ScoreboardModule)) return;
+        ScoreboardModule mod = (ScoreboardModule) moduleObj;
+        renderScoreboard(mc, scoreboard, objective, x, y, mod);
+    }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
-    public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
-
-        Scoreboard mod = (Scoreboard) AmethystClient.moduleManager.getModuleByName("Scoreboard");
-        if (mod == null || !mod.isEnabled()) return;
-
-        net.minecraft.scoreboard.Scoreboard sb = mc.theWorld == null ? null : mc.theWorld.getScoreboard();
-        if (sb == null) return;
-
-        // Берём sidebar objective — то что обычно показывает сервер справа
-        ScoreObjective objective = sb.getObjectiveInDisplaySlot(1);
+    public static void renderScoreboard(Minecraft mc,
+                                       net.minecraft.scoreboard.Scoreboard scoreboard,
+                                       net.minecraft.scoreboard.ScoreObjective objective,
+                                       int x, int y,
+                                       ScoreboardModule mod) {
         if (objective == null) return;
 
-        ScaledResolution sr = new ScaledResolution(mc);
-        int W = sr.getScaledWidth();
-        int H = sr.getScaledHeight();
+        FontRenderer fontRenderer = mc.fontRendererObj;
 
-        int x = HUDConfig.getScoreboardX();
-        int y = HUDConfig.getScoreboardY();
-        float scale = mod.getScale();
+        Collection<Score> scores = scoreboard.getSortedScores(objective);
+        List<Score> filteredScores = scores.stream()
+                .filter(score -> score.getPlayerName() != null && !score.getPlayerName().startsWith("#"))
+                .collect(Collectors.toList());
 
-        GlStateManager.pushMatrix();
-        GlStateManager.scale(scale, scale, 1f);
+        if (filteredScores.size() > 15) {
+            filteredScores = new ArrayList<>(filteredScores).subList(0, 15);
+        }
 
-        int sx = (int)(x / scale);
-        int sy = (int)(y / scale);
-
-        renderScoreboard(sb, objective, sx, sy, mod);
-
-        GlStateManager.popMatrix();
-    }
-
-    private void renderScoreboard(net.minecraft.scoreboard.Scoreboard sb,
-                                   ScoreObjective objective,
-                                   int x, int y,
-                                   Scoreboard mod) {
-        // Собираем строки (max 15 как у ваниллы)
-        Collection<Score> scores = sb.getSortedScores(objective);
-        List<Score> list = new ArrayList<>();
-        for (Score s : scores) {
-            if (s.getPlayerName() != null && !s.getPlayerName().startsWith("#")) {
-                list.add(s);
+        int maxWidth = fontRenderer.getStringWidth(objective.getDisplayName());
+        for (Score score : filteredScores) {
+            Team team = scoreboard.getPlayersTeam(score.getPlayerName());
+            String displayText = formatPlayerName(team, score.getPlayerName());
+            int width = fontRenderer.getStringWidth(displayText);
+            if (width > maxWidth) {
+                maxWidth = width;
             }
         }
-        if (list.size() > 15) list = list.subList(list.size() - 15, list.size());
+
+        int scoreboardHeight = filteredScores.size() * fontRenderer.FONT_HEIGHT;
+        int totalHeight = scoreboardHeight + fontRenderer.FONT_HEIGHT + 3;
+
+        int posY = y + totalHeight;
+
+        Gui.drawRect(x - 2, y - 1, x + maxWidth + 2, y + totalHeight, 0x50000000);
+        Gui.drawRect(x - 2, y - 1, x + maxWidth + 2, y + fontRenderer.FONT_HEIGHT, 0x60000000);
 
         String title = objective.getDisplayName();
+        int titleWidth = fontRenderer.getStringWidth(title);
+        fontRenderer.drawString(title, x + (maxWidth - titleWidth) / 2, y, 0xFFFFFF);
 
-        // Вычисляем ширину панели
-        int maxW = mc.fontRendererObj.getStringWidth(title);
-        for (Score s : list) {
-            String name = formatName(sb, s);
-            String num  = String.valueOf(s.getScorePoints());
-            int lineW = mc.fontRendererObj.getStringWidth(name)
-                      + (mod.isShowNumbers() ? mc.fontRendererObj.getStringWidth(" " + num) : 0)
-                      + 6;
-            if (lineW > maxW) maxW = lineW;
-        }
-        maxW += 8;
+        int lineY = y + fontRenderer.FONT_HEIGHT + 2;
 
-        int lineH  = 10;
-        int rows   = list.size();
-        int totalH = (rows + 1) * lineH + 4; // +1 заголовок, +4 padding
+        int index = 0;
+        for (Score score : filteredScores) {
+            index++;
+            Team team = scoreboard.getPlayersTeam(score.getPlayerName());
+            String displayText = formatPlayerName(team, score.getPlayerName());
+            String scoreText = EnumChatFormatting.RED + "" + score.getScorePoints();
 
-        // ── Фон ───────────────────────────────────────────────────────────────
-        if (mod.isShowBackground()) {
-            int alpha = (int)(mod.getBgAlpha() * 255);
+            fontRenderer.drawString(displayText, x, lineY, 0xFFFFFF);
+            fontRenderer.drawString(scoreText, x + maxWidth - fontRenderer.getStringWidth(scoreText), lineY, 0xFFFFFF);
 
-            // Тёмный фон строк
-            int bg = (alpha << 24) | 0x000000;
-            drawRect(x, y + lineH, x + maxW, y + totalH, bg);
-
-            // Заголовок чуть темнее
-            int titleBg = (Math.min(255, alpha + 40) << 24) | 0x000000;
-            drawRect(x, y, x + maxW, y + lineH + 2, titleBg);
-        }
-
-        // ── Заголовок ──────────────────────────────────────────────────────────
-        int titleX = x + maxW / 2 - mc.fontRendererObj.getStringWidth(title) / 2;
-        mc.fontRendererObj.drawStringWithShadow(title, titleX, y + 2, mod.getTitleColor());
-
-        // ── Строки (снизу вверх — как у ваниллы) ──────────────────────────────
-        for (int i = 0; i < rows; i++) {
-            Score s = list.get(rows - 1 - i);
-            String name = formatName(sb, s);
-            int rowY = y + lineH * (i + 1) + 4;
-
-            mc.fontRendererObj.drawStringWithShadow(name, x + 3, rowY, mod.getTextColor());
-
-            if (mod.isShowNumbers()) {
-                String num = String.valueOf(s.getScorePoints());
-                int numX = x + maxW - mc.fontRendererObj.getStringWidth(num) - 3;
-                mc.fontRendererObj.drawStringWithShadow(num, numX, rowY, mod.getNumberColor());
-            }
+            lineY += fontRenderer.FONT_HEIGHT;
         }
     }
 
-    /** Форматирует имя игрока с учётом командных цветов */
-    private String formatName(net.minecraft.scoreboard.Scoreboard sb, Score s) {
-        ScorePlayerTeam team = sb.getPlayersTeam(s.getPlayerName());
-        if (team != null) {
-            return ScorePlayerTeam.formatPlayerName(team, s.getPlayerName());
+    private static String formatPlayerName(Team team, String playerName) {
+        if (team == null) {
+            return playerName;
         }
-        return s.getPlayerName();
-    }
-
-    private void drawRect(int x1, int y1, int x2, int y2, int color) {
-        float a = (float)((color >> 24) & 0xFF) / 255f;
-        float r = (float)((color >> 16) & 0xFF) / 255f;
-        float g = (float)((color >>  8) & 0xFF) / 255f;
-        float b = (float)( color        & 0xFF) / 255f;
-
-        GlStateManager.enableBlend();
-        GlStateManager.disableTexture2D();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.color(r, g, b, a);
-
-        net.minecraft.client.renderer.Tessellator ts = net.minecraft.client.renderer.Tessellator.getInstance();
-        net.minecraft.client.renderer.WorldRenderer wr = ts.getWorldRenderer();
-        wr.begin(7, net.minecraft.client.renderer.vertex.DefaultVertexFormats.POSITION);
-        wr.pos(x1, y2, 0).endVertex();
-        wr.pos(x2, y2, 0).endVertex();
-        wr.pos(x2, y1, 0).endVertex();
-        wr.pos(x1, y1, 0).endVertex();
-        ts.draw();
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
+        return team.getColorPrefix() + playerName + team.getColorSuffix();
     }
 }

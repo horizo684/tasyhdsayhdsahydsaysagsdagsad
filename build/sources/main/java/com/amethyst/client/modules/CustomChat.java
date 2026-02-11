@@ -1,17 +1,20 @@
 package com.amethyst.client.modules;
 
-import com.amethyst.client.HUDConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiNewChat;
-import net.minecraft.client.gui.ScaledResolution;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.InputEvent;
 import org.lwjgl.input.Keyboard;
+
+import com.amethyst.client.CustomChatPickerGUI;
 
 public class CustomChat extends Module {
 
+    private boolean fadeMessages = true;
+    private boolean showTimestamps = false;
     private boolean showBackground = true;
+    private float scale = 1.0f;
+    private int maxMessages = 10;
+    private int textColor = 0xFFFFFF;
     private float bgAlpha = 0.5f;
 
     public CustomChat() {
@@ -20,67 +23,75 @@ public class CustomChat extends Module {
 
     @Override
     public void onEnable() {
-        // Регистрируем обработчик
     }
 
     @Override
     public void onDisable() {
-        // Восстанавливаем ванильный чат
-        resetChatPosition();
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onRenderChat(RenderGameOverlayEvent.Chat event) {
-        if (!this.isEnabled()) return;
-
+    @SubscribeEvent
+    public void onKeyInput(InputEvent.KeyInputEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
-        GuiNewChat chat = mc.ingameGUI.getChatGUI();
-        ScaledResolution sr = new ScaledResolution(mc);
-
-        // Получаем сохраненные координаты
-        int x = HUDConfig.getChatX();
-        int y = HUDConfig.getChatY();
-
-        // Если координаты не установлены, используем дефолтные (как в ванильном майнкрафте)
-        if (x == -1) x = 2; // Ванильная позиция X
-        if (y == -1) y = sr.getScaledHeight() - 48; // Ванильная позиция Y
-
-        // ВАЖНО: Отменяем стандартную отрисовку чата
-        event.setCanceled(true);
-
-        // Рисуем чат в кастомной позиции
-        net.minecraft.client.gui.Gui.drawRect(x, y, x + 320, y + 180, 
-            showBackground ? (int)(bgAlpha * 255) << 24 : 0);
-
-        // Сдвигаем рендер чата
-        org.lwjgl.opengl.GL11.glPushMatrix();
-        org.lwjgl.opengl.GL11.glTranslatef(x, y, 0);
+        if (!this.isEnabled()) return;
         
-        // Отрисовываем сам чат (всегда видим сообщения)
-        chat.drawChat(mc.ingameGUI.getUpdateCounter());
-        
-        org.lwjgl.opengl.GL11.glPopMatrix();
+        if (Keyboard.isKeyDown(Keyboard.KEY_RSHIFT) && Keyboard.isKeyDown(Keyboard.KEY_C)) {
+            mc.displayGuiScreen(new CustomChatPickerGUI(mc.currentScreen, this));
+        }
     }
 
-    private void resetChatPosition() {
-        // Сбрасываем на ванильную позицию при отключении
-        HUDConfig.setChatX(-1);
-        HUDConfig.setChatY(-1);
+    public boolean isFadeMessages() { 
+        return fadeMessages; 
+    }
+    
+    public void setFadeMessages(boolean fade) { 
+        this.fadeMessages = fade; 
+    }
+
+    public boolean isShowTimestamps() { 
+        return showTimestamps; 
+    }
+    
+    public void setShowTimestamps(boolean show) { 
+        this.showTimestamps = show; 
     }
 
     public boolean isShowBackground() {
         return showBackground;
     }
 
-    public void setShowBackground(boolean showBackground) {
-        this.showBackground = showBackground;
+    public void setShowBackground(boolean show) {
+        this.showBackground = show;
+    }
+
+    public float getScale() { 
+        return scale; 
+    }
+    
+    public void setScale(float scale) { 
+        this.scale = Math.max(0.5f, Math.min(2.0f, scale)); 
+    }
+
+    public int getMaxMessages() { 
+        return maxMessages; 
+    }
+    
+    public void setMaxMessages(int max) { 
+        this.maxMessages = Math.max(3, Math.min(20, max)); 
+    }
+
+    public int getTextColor() { 
+        return textColor; 
+    }
+    
+    public void setTextColor(int color) { 
+        this.textColor = color; 
     }
 
     public float getBgAlpha() {
         return bgAlpha;
     }
 
-    public void setBgAlpha(float bgAlpha) {
-        this.bgAlpha = bgAlpha;
+    public void setBgAlpha(float alpha) {
+        this.bgAlpha = Math.max(0.0f, Math.min(1.0f, alpha));
     }
 }
