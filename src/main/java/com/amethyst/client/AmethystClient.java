@@ -4,6 +4,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 @Mod(modid = AmethystClient.MODID, name = AmethystClient.NAME, version = AmethystClient.VERSION)
 public class AmethystClient {
@@ -33,6 +34,7 @@ public class AmethystClient {
         MinecraftForge.EVENT_BUS.register(new FriendTagRenderer());
         MinecraftForge.EVENT_BUS.register(new GuiModifier());
         MinecraftForge.EVENT_BUS.register(new CopyChatClickHandler());
+        MinecraftForge.EVENT_BUS.register(new ScreenshotClickHandler()); // ← перехват кликов кнопок
 
         Module cpsCounter = moduleManager.getModuleByName("CPS Counter");
         if (cpsCounter != null) MinecraftForge.EVENT_BUS.register(cpsCounter);
@@ -57,5 +59,13 @@ public class AmethystClient {
 
         Module autoSprint = moduleManager.getModuleByName("AutoSprint");
         if (autoSprint != null) MinecraftForge.EVENT_BUS.register(autoSprint);
+
+        Module asyncScreenshot = moduleManager.getModuleByName("AsyncScreenshot");
+        if (asyncScreenshot != null) MinecraftForge.EVENT_BUS.register(asyncScreenshot);
+    }
+
+    @Mod.EventHandler
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new CopyMessageCommand());
     }
 }

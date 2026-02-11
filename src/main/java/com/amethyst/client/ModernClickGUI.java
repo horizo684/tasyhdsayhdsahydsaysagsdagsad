@@ -67,8 +67,9 @@ public class ModernClickGUI extends GuiScreen {
             else if (m instanceof ModuleList || m instanceof ColorChanger || m instanceof Nametag
                   || m instanceof Friends    || m instanceof FullBright)
                 visual.modules.add(m);
+            // AsyncScreenshot добавлен в MISC
             else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam
-                  || m instanceof AutoSprint)
+                  || m instanceof AutoSprint  || m instanceof AsyncScreenshot)
                 misc.modules.add(m);
             else if (m instanceof SoupCounter || m instanceof FPSCounter || m instanceof PingCounter
                   || m instanceof Clock       || m instanceof CPSCounter  || m instanceof Saturation)
@@ -214,6 +215,11 @@ public class ModernClickGUI extends GuiScreen {
                 ? ColorChanger.getPresetColor(cc.getPresetIndex(), idx, total, cc.getRainbowSpeed())
                 : catAccent;
 
+        // AsyncScreenshot получает особый цвет-акцент — фиолетовый/розовый
+        if (m instanceof AsyncScreenshot) {
+            cardAccent = cc != null && cc.isEnabled() ? cardAccent : 0xFFDD44FF;
+        }
+
         int bgAlpha = enabled ? 0x28 : 0x18;
         int bgColor = enabled
                 ? (cardAccent & 0x00FFFFFF) | (bgAlpha << 24)
@@ -247,6 +253,11 @@ public class ModernClickGUI extends GuiScreen {
             desc += "..";
         }
         mc.fontRendererObj.drawString(desc, x + 8, y + 22, 0x55AABBCC);
+
+        // Для AsyncScreenshot показываем дополнительную подсказку про F2
+        if (m instanceof AsyncScreenshot) {
+            mc.fontRendererObj.drawString("§5F2 §8→ §7screenshot", x + 8, y + 33, 0xFF777788);
+        }
 
         String status = enabled ? "ON" : "OFF";
         int pillColor = enabled ? cardAccent : 0x44AAAAAA;
