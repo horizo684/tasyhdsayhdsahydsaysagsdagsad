@@ -93,7 +93,7 @@ public class ModernClickGUI extends GuiScreen {
                   || m instanceof Friends    || m instanceof FullBright)
                 visual.modules.add(m);
             else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam)
-				  || m instanceof AutoSprint) 
+				  || m instanceof AutoSprint); 
                 misc.modules.add(m);
             else if (m instanceof SoupCounter || m instanceof FPSCounter || m instanceof PingCounter
                   || m instanceof Clock       || m instanceof CPSCounter  || m instanceof Saturation)
