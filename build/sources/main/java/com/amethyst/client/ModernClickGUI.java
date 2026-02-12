@@ -38,11 +38,24 @@ public class ModernClickGUI extends GuiScreen {
     private static class ModuleCategory {
         final String icon, name;
         final List<Module> modules = new ArrayList<>();
-        ModuleCategory(String icon, String name) { this.icon = icon; this.name = name; }
+        final boolean isHome;
+        ModuleCategory(String icon, String name) { 
+            this.icon = icon; 
+            this.name = name; 
+            this.isHome = false;
+        }
+        ModuleCategory(String icon, String name, boolean isHome) { 
+            this.icon = icon; 
+            this.name = name; 
+            this.isHome = isHome;
+        }
     }
 
-    private static final int[]    CAT_ACCENT = { 0xFFFF4455, 0xFF44AAFF, 0xFFFFAA33, 0xFF44FF99 };
-    private static final String[] CAT_ICONS  = { "⚔", "✦", "⚙", "▣" };
+    private static final int[]    CAT_ACCENT = { 0xFF7B68EE, 0xFF9966FF, 0xFFFF4455, 0xFF44AAFF, 0xFFFFAA33, 0xFF44FF99 };
+    private static final String[] CAT_ICONS  = { "◆", "◈", "⚔", "✦", "⚙", "▣" };
+    
+    private String searchQuery = "";
+    private boolean searchFocused = false;
 
     @Override
     public void initGui() {
@@ -54,16 +67,18 @@ public class ModernClickGUI extends GuiScreen {
 
     private void buildCategories() {
         categories.clear();
-        ModuleCategory combat = new ModuleCategory(CAT_ICONS[0], "COMBAT");
-        ModuleCategory visual = new ModuleCategory(CAT_ICONS[1], "VISUAL");
-        ModuleCategory misc   = new ModuleCategory(CAT_ICONS[2], "MISC");
-        ModuleCategory hud    = new ModuleCategory(CAT_ICONS[3], "HUD");
+        ModuleCategory home   = new ModuleCategory(CAT_ICONS[0], "HOME", true);
+        ModuleCategory all    = new ModuleCategory(CAT_ICONS[1], "ALL");
+        ModuleCategory combat = new ModuleCategory(CAT_ICONS[2], "COMBAT");
+        ModuleCategory visual = new ModuleCategory(CAT_ICONS[3], "VISUAL");
+        ModuleCategory misc   = new ModuleCategory(CAT_ICONS[4], "MISC");
+        ModuleCategory hud    = new ModuleCategory(CAT_ICONS[5], "HUD");
 
         for (Module m : AmethystClient.moduleManager.getModules()) {
             if      (m instanceof HitDelayFix || m instanceof AutoSoup || m instanceof Refill)
                 combat.modules.add(m);
             else if (m instanceof ModuleList || m instanceof ColorChanger || m instanceof Nametag
-                  || m instanceof Friends    || m instanceof FullBright)
+                  || m instanceof Friends    || m instanceof FullBright || m instanceof Animations)
                 visual.modules.add(m);
             else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam
                   || m instanceof AutoSprint  || m instanceof AsyncScreenshot || m instanceof ClickGUI)
@@ -72,9 +87,15 @@ public class ModernClickGUI extends GuiScreen {
                   || m instanceof Clock       || m instanceof CPSCounter  || m instanceof Saturation
                   || m instanceof Scoreboard  || m instanceof CustomChat)
                 hud.modules.add(m);
+            
+            all.modules.add(m);
         }
-        categories.add(combat); categories.add(visual);
-        categories.add(misc);   categories.add(hud);
+        categories.add(home);   
+        categories.add(all);
+        categories.add(combat); 
+        categories.add(visual); 
+        categories.add(misc);   
+        categories.add(hud);
     }
 
     // ── Easing functions ──────────────────────────────────────────────────────
@@ -265,7 +286,15 @@ public class ModernClickGUI extends GuiScreen {
             String label = cat.icon + " " + cat.name;
             int textCol = sel ? 0xFFFFFFFF : (hov ? 0xCCFFFFFF : 0x77AABBCC);
             mc.fontRendererObj.drawStringWithShadow(label, px+14, btnY+7, textCol);
-            mc.fontRendererObj.drawString(String.valueOf(cat.modules.size()),
+            
+            String count;
+            if (!searchQuery.isEmpty() && !cat.isHome) {
+                int filtered = getFilteredModules(cat).size();
+                count = filtered + "/" + cat.modules.size();
+            } else {
+                count = String.valueOf(cat.modules.size());
+            }
+            mc.fontRendererObj.drawString(count,
                     px+SIDEBAR_W-16, btnY+7, sel ? accent : 0x44AAAAAA);
 
             btnY += btnH + btnGap;
@@ -283,8 +312,21 @@ public class ModernClickGUI extends GuiScreen {
         int accent = CAT_ACCENT[selectedCategory];
         ColorChanger cc = getColorChanger();
 
+        // Special rendering for HOME category
+        if (cat.isHome) {
+            drawHomeCategory(cx, cy, cw, ch, accent, mx, my);
+            return;
+        }
+
+        // Draw header for normal categories
         mc.fontRendererObj.drawStringWithShadow(cat.name, cx + GRID_PAD_X, cy + 10, accent);
-        mc.fontRendererObj.drawString(cat.modules.size() + " modules", cx + GRID_PAD_X, cy + 21, 0x44AABBCC);
+        
+        // Filter modules by search if needed
+        List<Module> displayModules = getFilteredModules(cat);
+        String moduleCountText = searchQuery.isEmpty() ? 
+            displayModules.size() + " modules" : 
+            displayModules.size() + " / " + cat.modules.size() + " modules";
+        mc.fontRendererObj.drawString(moduleCountText, cx + GRID_PAD_X, cy + 21, 0x44AABBCC);
 
         int gridTop = cy + HEADER_H;
         int gridH   = ch - HEADER_H - 4;
@@ -303,8 +345,8 @@ public class ModernClickGUI extends GuiScreen {
         hoveredCard = -1;
         int row = 0, col = 0;
 
-        for (int i = 0; i < cat.modules.size(); i++) {
-            Module m = cat.modules.get(i);
+        for (int i = 0; i < displayModules.size(); i++) {
+            Module m = displayModules.get(i);
             int cardX = cx + GRID_PAD_X + col * (CARD_W + CARD_GAP);
             int cardY = gridTop + row * (CARD_H + CARD_GAP) - scrollOffset;
 
@@ -312,7 +354,7 @@ public class ModernClickGUI extends GuiScreen {
                        && my >= cardY && my <= cardY + CARD_H
                        && my >= gridTop && my <= gridTop + gridH;
             if (hov) hoveredCard = i;
-            drawModuleCard(cardX, cardY, m, i, cat.modules.size(), accent, cc, hov);
+            drawModuleCard(cardX, cardY, m, i, displayModules.size(), accent, cc, hov);
 
             col++;
             if (col >= cols) { col = 0; row++; }
@@ -320,7 +362,7 @@ public class ModernClickGUI extends GuiScreen {
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
-        int totalRows = (cat.modules.size() + cols - 1) / cols;
+        int totalRows = (displayModules.size() + cols - 1) / cols;
         maxScroll = Math.max(0, totalRows * (CARD_H + CARD_GAP) - gridH - CARD_GAP);
 
         if (maxScroll > 0) {
@@ -330,6 +372,116 @@ public class ModernClickGUI extends GuiScreen {
             int   tH   = Math.max(20, gridH - (int)(frac * (gridH - 30)));
             int   tY   = gridTop + (int)(frac * (gridH - tH));
             drawRect(sbX, tY, sbX+3, tY+tH, (accent & 0x00FFFFFF) | 0xAA000000);
+        }
+    }
+
+    private List<Module> getFilteredModules(ModuleCategory cat) {
+        if (searchQuery.isEmpty()) {
+            return cat.modules;
+        }
+        
+        List<Module> filtered = new ArrayList<>();
+        String query = searchQuery.toLowerCase();
+        for (Module m : cat.modules) {
+            if (m.getName().toLowerCase().contains(query) || 
+                m.getDescription().toLowerCase().contains(query)) {
+                filtered.add(m);
+            }
+        }
+        return filtered;
+    }
+
+    private void drawHomeCategory(int cx, int cy, int cw, int ch, int accent, int mx, int my) {
+        // Draw title
+        mc.fontRendererObj.drawStringWithShadow("◆ HOME", cx + GRID_PAD_X, cy + 10, accent);
+        
+        int contentY = cy + 40;
+        
+        // Draw client info card
+        int cardX = cx + GRID_PAD_X;
+        int cardW = cw - GRID_PAD_X * 2;
+        int cardH = 95;
+        
+        // Card background
+        drawRect(cardX, contentY, cardX + cardW, contentY + cardH, 0x18FFFFFF);
+        drawRect(cardX, contentY, cardX + cardW, contentY + 3, (accent & 0x00FFFFFF) | 0xFF000000);
+        drawHollowRect(cardX, contentY, cardX + cardW, contentY + cardH, 0x22FFFFFF);
+        
+        // Client logo
+        String logo = "AMETHYST CLIENT";
+        ColorChanger cc = getColorChanger();
+        int logoX = cardX + 12;
+        int logoY = contentY + 12;
+        
+        for (int i = 0; i < logo.length(); i++) {
+            int col = cc != null && cc.isEnabled()
+                    ? ColorChanger.getPresetColor(cc.getPresetIndex(), i, logo.length(), cc.getRainbowSpeed())
+                    : accent;
+            mc.fontRendererObj.drawStringWithShadow(String.valueOf(logo.charAt(i)), logoX, logoY, col);
+            logoX += mc.fontRendererObj.getCharWidth(logo.charAt(i));
+        }
+        
+        // Version
+        mc.fontRendererObj.drawString("v1.1 Beta", cardX + 12, contentY + 27, 0x66AABBCC);
+        
+        // Description
+        String desc1 = "Мощный PvP клиент для Minecraft 1.8.9";
+        String desc2 = "с современным интерфейсом и множеством функций";
+        String desc3 = "для улучшения игрового опыта.";
+        
+        mc.fontRendererObj.drawString(desc1, cardX + 12, contentY + 42, 0x99FFFFFF);
+        mc.fontRendererObj.drawString(desc2, cardX + 12, contentY + 54, 0x99FFFFFF);
+        mc.fontRendererObj.drawString(desc3, cardX + 12, contentY + 66, 0x99FFFFFF);
+        
+        // Module count
+        int totalModules = AmethystClient.moduleManager.getModules().size();
+        int enabledModules = 0;
+        for (Module m : AmethystClient.moduleManager.getModules()) {
+            if (m.isEnabled()) enabledModules++;
+        }
+        String stats = enabledModules + " / " + totalModules + " модулей активно";
+        mc.fontRendererObj.drawString(stats, cardX + 12, contentY + 80, accent);
+        
+        // Search box
+        int searchY = contentY + cardH + 14;
+        int searchW = cardW;
+        int searchH = 26;
+        
+        // Search background
+        boolean searchHovered = mx >= cardX && mx <= cardX + searchW && 
+                               my >= searchY && my <= searchY + searchH;
+        drawRect(cardX, searchY, cardX + searchW, searchY + searchH, 
+                searchFocused ? 0x30FFFFFF : (searchHovered ? 0x22FFFFFF : 0x18FFFFFF));
+        drawRect(cardX, searchY, cardX + searchW, searchY + 2, 
+                searchFocused ? ((accent & 0x00FFFFFF) | 0xAA000000) : 0x22FFFFFF);
+        drawHollowRect(cardX, searchY, cardX + searchW, searchY + searchH, 
+                searchFocused ? ((accent & 0x00FFFFFF) | 0x77000000) : 0x22FFFFFF);
+        
+        // Search icon
+        mc.fontRendererObj.drawString("◎", cardX + 10, searchY + 9, searchFocused ? accent : 0x66AABBCC);
+        
+        // Search text
+        String searchText = searchQuery.isEmpty() ? "Поиск модулей..." : searchQuery;
+        int textColor = searchQuery.isEmpty() ? 0x55AABBCC : 0xFFFFFFFF;
+        mc.fontRendererObj.drawString(searchText, cardX + 26, searchY + 9, textColor);
+        
+        // Cursor for focused search
+        if (searchFocused && System.currentTimeMillis() % 1000 < 500) {
+            int cursorX = cardX + 26 + mc.fontRendererObj.getStringWidth(searchQuery);
+            drawRect(cursorX, searchY + 8, cursorX + 1, searchY + searchH - 8, accent);
+        }
+        
+        // Quick stats below search
+        int statsY = searchY + searchH + 12;
+        
+        String[] hints = {
+            "◈ Используй категории слева для навигации",
+            "⚔ Клик на карточку для активации модуля",
+            "✦ ПКМ на карточку для настроек (если доступно)"
+        };
+        
+        for (int i = 0; i < hints.length; i++) {
+            mc.fontRendererObj.drawString(hints[i], cardX + 12, statsY + i * 12, 0x66AABBCC);
         }
     }
 
@@ -395,7 +547,7 @@ public class ModernClickGUI extends GuiScreen {
     private boolean hasSettingsPopup(Module m) {
         return m instanceof ColorChanger || m instanceof Nametag
             || m instanceof Scoreboard  || m instanceof CustomChat
-            || m instanceof ClickGUI;
+            || m instanceof ClickGUI    || m instanceof Animations;
     }
 
     // ── Rounded panel ─────────────────────────────────────────────────────────
@@ -428,21 +580,43 @@ public class ModernClickGUI extends GuiScreen {
         int btnY = panelY+38, btnH = 22;
         for (int i = 0; i < categories.size(); i++) {
             if (mx >= panelX+6 && mx <= panelX+SIDEBAR_W-6 && my >= btnY && my <= btnY+btnH) {
-                selectedCategory = i; scrollOffset = 0; return;
+                selectedCategory = i; scrollOffset = 0; searchFocused = false; return;
             }
             btnY += btnH + 3;
         }
 
         ModuleCategory cat = categories.get(selectedCategory);
+        
+        // Handle HOME category clicks (search box)
+        if (cat.isHome) {
+            int cx = panelX + SIDEBAR_W;
+            int cw = panelW - SIDEBAR_W;
+            int cardX = cx + GRID_PAD_X;
+            int cardW = cw - GRID_PAD_X * 2;
+            int searchY = panelY + 40 + 95 + 14;
+            int searchH = 26;
+            
+            if (mx >= cardX && mx <= cardX + cardW && my >= searchY && my <= searchY + searchH) {
+                searchFocused = true;
+                return;
+            } else {
+                searchFocused = false;
+            }
+            super.mouseClicked(mx, my, btn);
+            return;
+        }
+        
+        searchFocused = false;
         int cx      = panelX + SIDEBAR_W;
         int cw      = panelW - SIDEBAR_W;
         int gridTop = panelY + HEADER_H;
         int gridH   = panelH - HEADER_H - 4;
         int cols    = Math.max(1, (cw - GRID_PAD_X*2 + CARD_GAP) / (CARD_W + CARD_GAP));
 
+        List<Module> displayModules = getFilteredModules(cat);
         int row = 0, col = 0;
-        for (int i = 0; i < cat.modules.size(); i++) {
-            Module m = cat.modules.get(i);
+        for (int i = 0; i < displayModules.size(); i++) {
+            Module m = displayModules.get(i);
             int cardX = cx + GRID_PAD_X + col * (CARD_W + CARD_GAP);
             int cardY = gridTop + row * (CARD_H + CARD_GAP) - scrollOffset;
 
@@ -457,6 +631,7 @@ public class ModernClickGUI extends GuiScreen {
                     else if (m instanceof Scoreboard)   mc.displayGuiScreen(new ScoreboardPickerGUI(this, (Scoreboard) m));
                     else if (m instanceof CustomChat)   mc.displayGuiScreen(new CustomChatPickerGUI(this, (CustomChat) m));
                     else if (m instanceof ClickGUI)     mc.displayGuiScreen(new ClickGUIPickerGUI(this, (ClickGUI) m));
+                    else if (m instanceof Animations)   mc.displayGuiScreen(new AnimationsPickerGUI(this, (Animations) m));
                 }
                 return;
             }
@@ -469,7 +644,28 @@ public class ModernClickGUI extends GuiScreen {
 
     @Override
     protected void keyTyped(char ch, int key) throws IOException {
-        if (key == 1) { closing = true; return; }
+        if (key == 1) { 
+            if (searchFocused) {
+                searchFocused = false;
+                return;
+            }
+            closing = true; 
+            return; 
+        }
+        
+        if (searchFocused) {
+            if (key == 14) { // Backspace
+                if (searchQuery.length() > 0) {
+                    searchQuery = searchQuery.substring(0, searchQuery.length() - 1);
+                }
+            } else if (key == 28) { // Enter
+                searchFocused = false;
+            } else if (ch >= 32 && ch < 127) { // Printable characters
+                searchQuery += ch;
+            }
+            return;
+        }
+        
         super.keyTyped(ch, key);
     }
 

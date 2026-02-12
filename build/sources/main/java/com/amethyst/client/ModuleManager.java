@@ -25,6 +25,7 @@ public class ModuleManager {
         modules.add(new Friends());
         modules.add(new FullBright());
         modules.add(new Saturation());
+        modules.add(new Animations());
 
         // Combat Modules
         modules.add(new HitDelayFix());
