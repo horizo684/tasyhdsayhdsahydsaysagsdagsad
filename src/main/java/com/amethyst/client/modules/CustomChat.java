@@ -1,79 +1,43 @@
-package com.amethyst.client;
+package com.amethyst.client.modules;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ChatLine;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiNewChat;
-import net.minecraft.util.IChatComponent;
-import net.minecraftforge.client.event.GuiScreenEvent;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import com.amethyst.client.Module;
 
-import java.lang.reflect.Field;
-import java.util.List;
+public class CustomChat extends Module {
 
-public class GuiNewChatHook {
-    
-    private Field drawnChatLinesField = null;
-    
-    public GuiNewChatHook() {
-        try {
-            drawnChatLinesField = GuiNewChat.class.getDeclaredField("drawnChatLines");
-            drawnChatLinesField.setAccessible(true);
-        } catch (Exception e) {
-            try {
-                drawnChatLinesField = GuiNewChat.class.getDeclaredField("field_146252_h");
-                drawnChatLinesField.setAccessible(true);
-            } catch (Exception ex) {
-                System.err.println("Could not access drawnChatLines field!");
-                ex.printStackTrace();
-            }
-        }
+    private boolean showBackground = true;
+    private boolean fadeMessages   = true;
+    private boolean showTimestamps = false;
+
+    private float bgAlpha     = 0.5f;
+    private float chatWidth   = 1.0f;
+    private float chatOpacity = 1.0f;
+    private float chatScale   = 1.0f;
+    private int   maxMessages = 10;
+    private int   textColor   = 0xFFFFFFFF;
+
+    public CustomChat() {
+        super("CustomChat", "Vanilla-style chat beautifier with custom styling", 0, Category.RENDER);
     }
-    
-    @SubscribeEvent
-    public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        // Иконки копирования теперь рисуются в CustomChatRenderer
-        // Этот код больше не используется
-    }
-    
-    @SubscribeEvent
-    public void onMouseClick(GuiScreenEvent.MouseInputEvent.Pre event) {
-        Minecraft mc = Minecraft.getMinecraft();
-        
-        if (org.lwjgl.input.Mouse.getEventButtonState() && org.lwjgl.input.Mouse.getEventButton() == 0) {
-            try {
-                int mouseX = org.lwjgl.input.Mouse.getEventX() * event.gui.width / mc.displayWidth;
-                int mouseY = event.gui.height - org.lwjgl.input.Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
-                
-                // Сначала проверяем включен ли CustomChat
-                com.amethyst.client.modules.CustomChat customChat = 
-                    (com.amethyst.client.modules.CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                
-                if (customChat != null && customChat.isEnabled()) {
-                    // Используем обработчик кликов из CustomChatRenderer
-                    if (AmethystClient.customChatRenderer != null) {
-                        AmethystClient.customChatRenderer.handleChatClick(mouseX, mouseY);
-                    }
-                } else {
-                    // Ванильный чат - используем старый код
-                    FontRenderer fontRenderer = mc.fontRendererObj;
-                    int iconWidth = fontRenderer.getStringWidth("§a[§f+§a]") + 3;
-                    
-                    if (mouseX >= 2 && mouseX <= 2 + iconWidth) {
-                        IChatComponent chatComponent = mc.ingameGUI.getChatGUI().getChatComponent(mouseX, mouseY);
-                        
-                        if (chatComponent != null) {
-                            String fullMessage = chatComponent.getFormattedText();
-                            fullMessage = fullMessage.replaceAll("§[0-9a-fk-or]", "");
-                            ChatCopyButton.copyToClipboard(fullMessage);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
+
+    public boolean isShowBackground() { return showBackground; }
+    public boolean isFadeMessages()   { return fadeMessages; }
+    public boolean isShowTimestamps() { return showTimestamps; }
+
+    public float getBgAlpha()     { return bgAlpha; }
+    public float getChatWidth()   { return chatWidth; }
+    public float getChatOpacity() { return chatOpacity; }
+    public float getChatScale()   { return chatScale; }
+    public int   getMaxMessages() { return maxMessages; }
+    public int   getTextColor()   { return textColor; }
+
+    public void setShowBackground(boolean v) { showBackground = v; }
+    public void setFadeMessages(boolean v)   { fadeMessages = v; }
+    public void setShowTimestamps(boolean v) { showTimestamps = v; }
+
+    public void setBgAlpha(float v)     { bgAlpha     = Math.max(0f, Math.min(1f, v)); }
+    public void setChatWidth(float v)   { chatWidth   = Math.max(0.5f, Math.min(2.0f, v)); }
+    public void setChatOpacity(float v) { chatOpacity = Math.max(0f, Math.min(1f, v)); }
+    public void setChatScale(float v)   { chatScale   = Math.max(0.5f, Math.min(2.0f, v)); }
+    public void setMaxMessages(int v)   { maxMessages = Math.max(3, Math.min(20, v)); }
+    public void setTextColor(int v)     { textColor   = v; }
 }

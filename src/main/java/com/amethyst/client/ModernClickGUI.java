@@ -4,13 +4,9 @@ import com.amethyst.client.modules.*;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +18,6 @@ public class ModernClickGUI extends GuiScreen {
     private static final int CARD_H     = 72;
     private static final int CARD_GAP   = 8;
     private static final int GRID_PAD_X = 14;
-    private static final int GRID_PAD_Y = 10;
     private static final int HEADER_H   = 32;
 
     private int selectedCategory = 0;
@@ -30,13 +25,11 @@ public class ModernClickGUI extends GuiScreen {
     private int maxScroll        = 0;
     private int hoveredCard      = -1;
 
-    // ── Zoom animation ────────────────────────────────────────────────────────
-    private float animScale   = 0.85f;  // starts small
-    private float animAlpha   = 0.0f;   // starts transparent
-    private boolean closing   = false;
-    private long   openTime   = 0;
-
-    private static final float ANIM_SPEED = 0.12f;
+    // ── Animation ─────────────────────────────────────────────────────────────
+    // Single linear progress 0→1 (opening) then 1→0 (closing)
+    // Easing is applied at render time, not stored.
+    private float progress  = 0f;   // raw linear [0,1]
+    private boolean closing = false;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -45,7 +38,7 @@ public class ModernClickGUI extends GuiScreen {
     private static class ModuleCategory {
         final String icon, name;
         final List<Module> modules = new ArrayList<>();
-        ModuleCategory(String icon, String name) { this.icon=icon; this.name=name; }
+        ModuleCategory(String icon, String name) { this.icon = icon; this.name = name; }
     }
 
     private static final int[]    CAT_ACCENT = { 0xFFFF4455, 0xFF44AAFF, 0xFFFFAA33, 0xFF44FF99 };
@@ -55,10 +48,8 @@ public class ModernClickGUI extends GuiScreen {
     public void initGui() {
         buildCategories();
         scrollOffset = 0;
-        animScale  = 0.85f;
-        animAlpha  = 0.0f;
-        closing    = false;
-        openTime   = System.currentTimeMillis();
+        progress = 0f;
+        closing  = false;
     }
 
     private void buildCategories() {
@@ -75,7 +66,7 @@ public class ModernClickGUI extends GuiScreen {
                   || m instanceof Friends    || m instanceof FullBright)
                 visual.modules.add(m);
             else if (m instanceof NoJumpDelay || m instanceof CopyChat || m instanceof NoHurtCam
-                  || m instanceof AutoSprint  || m instanceof AsyncScreenshot)
+                  || m instanceof AutoSprint  || m instanceof AsyncScreenshot || m instanceof ClickGUI)
                 misc.modules.add(m);
             else if (m instanceof SoupCounter || m instanceof FPSCounter || m instanceof PingCounter
                   || m instanceof Clock       || m instanceof CPSCounter  || m instanceof Saturation
@@ -86,25 +77,112 @@ public class ModernClickGUI extends GuiScreen {
         categories.add(misc);   categories.add(hud);
     }
 
-    // ── Update animation each frame ───────────────────────────────────────────
+    // ── Easing functions ──────────────────────────────────────────────────────
+
+    /** Cubic ease-out: fast start, smooth landing */
+    private float easeOut(float t) {
+        return 1f - (1f - t) * (1f - t) * (1f - t);
+    }
+
+    /** Cubic ease-in: slow start, fast end — for closing */
+    private float easeIn(float t) {
+        return t * t * t;
+    }
+
+    /** Bounce ease-out: overshoots slightly then settles */
+    private float easeOutBounce(float t) {
+        if (t < 0.5f) {
+            float s = 2f * t;
+            return 0.5f * (4*s*s*s);
+        } else {
+            float s = 2f * t - 1f;
+            float cubic = 1f - (float)Math.pow(-2f*s+2f,3)/2f;
+            // tiny extra overshoot
+            return 0.5f + 0.5f * cubic + (float)Math.sin(t * Math.PI) * 0.025f;
+        }
+    }
+
+    private ClickGUI getClickGUI() {
+        return (ClickGUI) AmethystClient.moduleManager.getModuleByName("ClickGUI");
+    }
+
+    private ClickGUI.AnimType getAnimType() {
+        ClickGUI cfg = getClickGUI();
+        return cfg != null ? cfg.getAnimType() : ClickGUI.AnimType.ZOOM;
+    }
+
+    private float getSpeed() {
+        ClickGUI cfg = getClickGUI();
+        // speed in [0.05, 0.40] → per-tick delta in [0.022, 0.10]
+        // We want very smooth open (~18 ticks) at default 0.17
+        return cfg != null ? cfg.getAnimSpeed() * 0.55f : 0.094f;
+    }
+
+    // ── Update ────────────────────────────────────────────────────────────────
+
     @Override
     public void updateScreen() {
+        float spd = getSpeed();
+
         if (!closing) {
-            animScale = lerp(animScale, 1.0f, ANIM_SPEED + 0.05f);
-            animAlpha = lerp(animAlpha, 1.0f, ANIM_SPEED + 0.05f);
+            progress = Math.min(1f, progress + spd);
         } else {
-            animScale = lerp(animScale, 0.80f, ANIM_SPEED);
-            animAlpha = lerp(animAlpha, 0.0f,  ANIM_SPEED);
-            if (animAlpha < 0.03f) {
+            // Close is 2.5x faster for snappy feel
+            progress = Math.max(0f, progress - spd * 2.5f);
+            if (progress <= 0f) {
                 mc.displayGuiScreen(null);
             }
         }
     }
 
-    private float lerp(float a, float b, float t) { return a + (b - a) * t; }
+    // ── Compute transform for current anim type and progress ──────────────────
+    // Returns float[3]: { scaleXY, alphaMultiplier, translateY }
 
-    @Override
-    public void onGuiClosed() { /* nothing extra needed */ }
+    private float[] getTransform() {
+        float p = closing ? easeIn(1f - progress) : easeOut(progress);
+        // p goes 0→1 open, and for close ease we flip it so 1→0
+
+        switch (getAnimType()) {
+            case ZOOM:
+                float scaleZ = 0.80f + (closing ? (1f - p) : p) * 0.20f;
+                float alphaZ = closing ? (1f - p) : p;
+                return new float[]{ scaleZ, alphaZ, 0f };
+
+            case SLIDE_DOWN: {
+                float ep = closing ? easeIn(progress) : easeOut(progress);
+                // open: slide from above (-30) → 0
+                // close: slide to below (+30)
+                float offY = closing
+                    ? ep * 30f
+                    : (1f - easeOut(progress)) * -30f;
+                float al = closing ? (1f - progress * 2f) : Math.min(1f, progress * 2f);
+                return new float[]{ 1f, al, offY };
+            }
+
+            case SLIDE_UP: {
+                float ep = closing ? easeIn(progress) : easeOut(progress);
+                float offY = closing
+                    ? ep * -30f
+                    : (1f - easeOut(progress)) * 30f;
+                float al = closing ? (1f - progress * 2f) : Math.min(1f, progress * 2f);
+                return new float[]{ 1f, al, offY };
+            }
+
+            case FADE:
+                float alphaF = closing ? easeIn(1f - progress) : easeOut(progress);
+                return new float[]{ 1f, alphaF, 0f };
+
+            case BOUNCE: {
+                float raw = closing ? easeIn(1f - progress) : easeOutBounce(progress);
+                float scaleB = 0.78f + Math.min(raw, 1.04f) * 0.22f;
+                float alphaB = closing ? (1f - progress) : Math.min(1f, progress * 1.5f);
+                return new float[]{ scaleB, alphaB, 0f };
+            }
+
+            default:
+                return new float[]{ 1f, progress, 0f };
+        }
+    }
 
     // ── Draw ──────────────────────────────────────────────────────────────────
 
@@ -113,27 +191,30 @@ public class ModernClickGUI extends GuiScreen {
         ScaledResolution sr = new ScaledResolution(mc);
         int W = sr.getScaledWidth(), H = sr.getScaledHeight();
 
-        // Dimmed background (fade with alpha)
-        int bgAlpha = (int)(animAlpha * 0xDD);
-        drawGradientRect(0, 0, W, H, (bgAlpha << 24) | 0x000000, (bgAlpha << 24) | 0x050510);
+        float[] tr = getTransform();
+        float scale  = tr[0];
+        float alpha  = Math.max(0f, Math.min(1f, tr[1]));
+        float transY = tr[2];
 
-        // Apply zoom+fade transform centred on screen
+        // Dim background
+        int bgA = (int)(alpha * 0xCC);
+        drawGradientRect(0, 0, W, H, bgA << 24, (bgA << 24) | 0x050510);
+
         GlStateManager.pushMatrix();
-        GlStateManager.translate(W / 2f, H / 2f, 0);
-        GlStateManager.scale(animScale, animScale, 1f);
+        GlStateManager.translate(W / 2f, H / 2f + transY, 0);
+        GlStateManager.scale(scale, scale, 1f);
         GlStateManager.translate(-W / 2f, -H / 2f, 0);
-        // Alpha via color (will affect drawString etc.)
-        GlStateManager.color(1f, 1f, 1f, Math.min(1f, animAlpha));
+        GlStateManager.color(1f, 1f, 1f, alpha);
 
         int panelX = W / 2 - 230, panelY = H / 2 - 140;
         int panelW = 460,         panelH = 280;
-        drawRoundedPanel(panelX, panelY, panelW, panelH);
 
+        drawRoundedPanel(panelX, panelY, panelW, panelH);
         drawSidebar(panelX, panelY, panelH, mx, my);
 
         int contentX = panelX + SIDEBAR_W;
         int contentW = panelW - SIDEBAR_W;
-        drawContentArea(contentX, panelY, contentW, panelH, mx, my);
+        drawContentAreaClipped(contentX, panelY, contentW, panelH, mx, my);
 
         drawRect(panelX + SIDEBAR_W - 1, panelY + 8, panelX + SIDEBAR_W, panelY + panelH - 8, 0x22FFFFFF);
 
@@ -174,9 +255,9 @@ public class ModernClickGUI extends GuiScreen {
             int accent = CAT_ACCENT[i];
 
             if (sel) {
-                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+btnH, accent & 0x00FFFFFF | 0x30000000);
+                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+btnH, (accent & 0x00FFFFFF) | 0x30000000);
                 drawRect(px+6, btnY, px+8, btnY+btnH, accent);
-                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+1, accent & 0x00FFFFFF | 0x88000000);
+                drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+1, (accent & 0x00FFFFFF) | 0x88000000);
             } else if (hov) {
                 drawRect(px+6, btnY, px+SIDEBAR_W-6, btnY+btnH, 0x18FFFFFF);
             }
@@ -195,9 +276,9 @@ public class ModernClickGUI extends GuiScreen {
                 py + pH - 12, 0x33FFFFFF);
     }
 
-    // ── Content area ──────────────────────────────────────────────────────────
+    // ── Content area with GL scissor clipping ─────────────────────────────────
 
-    private void drawContentArea(int cx, int cy, int cw, int ch, int mx, int my) {
+    private void drawContentAreaClipped(int cx, int cy, int cw, int ch, int mx, int my) {
         ModuleCategory cat = categories.get(selectedCategory);
         int accent = CAT_ACCENT[selectedCategory];
         ColorChanger cc = getColorChanger();
@@ -205,9 +286,19 @@ public class ModernClickGUI extends GuiScreen {
         mc.fontRendererObj.drawStringWithShadow(cat.name, cx + GRID_PAD_X, cy + 10, accent);
         mc.fontRendererObj.drawString(cat.modules.size() + " modules", cx + GRID_PAD_X, cy + 21, 0x44AABBCC);
 
-        int gridTop   = cy + HEADER_H;
-        int gridH     = ch - HEADER_H - 4;
-        int cols      = Math.max(1, (cw - GRID_PAD_X*2 + CARD_GAP) / (CARD_W + CARD_GAP));
+        int gridTop = cy + HEADER_H;
+        int gridH   = ch - HEADER_H - 4;
+        int cols    = Math.max(1, (cw - GRID_PAD_X*2 + CARD_GAP) / (CARD_W + CARD_GAP));
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        int sf = sr.getScaleFactor();
+
+        // GL scissor clips content — cards never overflow
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(cx * sf,
+                       mc.displayHeight - (gridTop + gridH) * sf,
+                       cw * sf,
+                       gridH * sf);
 
         hoveredCard = -1;
         int row = 0, col = 0;
@@ -217,44 +308,45 @@ public class ModernClickGUI extends GuiScreen {
             int cardX = cx + GRID_PAD_X + col * (CARD_W + CARD_GAP);
             int cardY = gridTop + row * (CARD_H + CARD_GAP) - scrollOffset;
 
-            if (cardY + CARD_H >= gridTop && cardY <= gridTop + gridH) {
-                boolean hov = mx >= cardX && mx <= cardX + CARD_W
-                           && my >= cardY && my <= cardY + CARD_H
-                           && my >= gridTop && my <= gridTop + gridH;
-                if (hov) hoveredCard = i;
-                drawModuleCard(cardX, cardY, m, i, cat.modules.size(), accent, cc, hov);
-            }
+            boolean hov = mx >= cardX && mx <= cardX + CARD_W
+                       && my >= cardY && my <= cardY + CARD_H
+                       && my >= gridTop && my <= gridTop + gridH;
+            if (hov) hoveredCard = i;
+            drawModuleCard(cardX, cardY, m, i, cat.modules.size(), accent, cc, hov);
+
             col++;
             if (col >= cols) { col = 0; row++; }
         }
+
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
         int totalRows = (cat.modules.size() + cols - 1) / cols;
         maxScroll = Math.max(0, totalRows * (CARD_H + CARD_GAP) - gridH - CARD_GAP);
 
         if (maxScroll > 0) {
-            int sbX = cx + cw - 5, sbH = gridH;
-            drawRect(sbX, gridTop, sbX+3, gridTop+sbH, 0x22FFFFFF);
+            int sbX = cx + cw - 5;
+            drawRect(sbX, gridTop, sbX+3, gridTop+gridH, 0x22FFFFFF);
             float frac = (float) scrollOffset / maxScroll;
-            int   tH   = Math.max(20, sbH - (int)(frac * (sbH - 30)));
-            int   tY   = gridTop + (int)(frac * (sbH - tH));
-            drawRect(sbX, tY, sbX+3, tY+tH, accent & 0x00FFFFFF | 0xAA000000);
+            int   tH   = Math.max(20, gridH - (int)(frac * (gridH - 30)));
+            int   tY   = gridTop + (int)(frac * (gridH - tH));
+            drawRect(sbX, tY, sbX+3, tY+tH, (accent & 0x00FFFFFF) | 0xAA000000);
         }
     }
 
     private void drawModuleCard(int x, int y, Module m, int idx, int total,
-                                 int catAccent, ColorChanger cc, boolean hov) {
+                                int catAccent, ColorChanger cc, boolean hov) {
         boolean enabled = m.isEnabled();
         int cardAccent = cc != null && cc.isEnabled()
                 ? ColorChanger.getPresetColor(cc.getPresetIndex(), idx, total, cc.getRainbowSpeed())
                 : catAccent;
 
         if (m instanceof AsyncScreenshot) cardAccent = cc != null && cc.isEnabled() ? cardAccent : 0xFFDD44FF;
+        if (m instanceof ClickGUI)        cardAccent = cc != null && cc.isEnabled() ? cardAccent : 0xFF44DDFF;
 
         drawRect(x, y, x+CARD_W, y+CARD_H,
-                enabled ? (cardAccent & 0x00FFFFFF | 0x28000000) : 0x18FFFFFF);
+                enabled ? ((cardAccent & 0x00FFFFFF) | 0x28000000) : 0x18FFFFFF);
         if (hov) drawRect(x, y, x+CARD_W, y+CARD_H, 0x14FFFFFF);
 
-        // Top accent strip
         if (enabled) {
             for (int i = 0; i < CARD_W; i++) {
                 int c = cc != null && cc.isEnabled()
@@ -267,12 +359,11 @@ public class ModernClickGUI extends GuiScreen {
         }
 
         drawHollowRect(x, y, x+CARD_W, y+CARD_H,
-                enabled ? (cardAccent & 0x00FFFFFF | 0x55000000) : 0x22FFFFFF);
+                enabled ? ((cardAccent & 0x00FFFFFF) | 0x55000000) : 0x22FFFFFF);
 
         mc.fontRendererObj.drawStringWithShadow(m.getName(), x+8, y+8,
                 enabled ? 0xFFFFFFFF : 0xAABBCCDD);
 
-        // Description (truncated)
         String desc = m.getDescription();
         while (mc.fontRendererObj.getStringWidth(desc + "..") > CARD_W - 16 && desc.length() > 0)
             desc = desc.substring(0, desc.length()-1);
@@ -282,7 +373,6 @@ public class ModernClickGUI extends GuiScreen {
         if (m instanceof AsyncScreenshot)
             mc.fontRendererObj.drawString("§5F2 §8→ §7screenshot", x+8, y+33, 0xFF777788);
 
-        // ON/OFF pill
         String status = enabled ? "ON" : "OFF";
         int pillColor = enabled ? cardAccent : 0x44AAAAAA;
         int pillW = mc.fontRendererObj.getStringWidth(status) + 8;
@@ -293,7 +383,6 @@ public class ModernClickGUI extends GuiScreen {
         mc.fontRendererObj.drawString(status, x+12, y+CARD_H-15,
                 enabled ? pillColor | 0xFF000000 : 0x66AAAAAA);
 
-        // RMB hint for modules that have a settings popup
         if (hasSettingsPopup(m)) {
             String hint = "RMB ▸";
             mc.fontRendererObj.drawString(hint,
@@ -303,16 +392,16 @@ public class ModernClickGUI extends GuiScreen {
         }
     }
 
-    /** Modules that open a settings GUI on RMB */
     private boolean hasSettingsPopup(Module m) {
         return m instanceof ColorChanger || m instanceof Nametag
-            || m instanceof Scoreboard  || m instanceof CustomChat;
+            || m instanceof Scoreboard  || m instanceof CustomChat
+            || m instanceof ClickGUI;
     }
 
     // ── Rounded panel ─────────────────────────────────────────────────────────
 
     private void drawRoundedPanel(int x, int y, int w, int h) {
-        drawRect(x+3, y,   x+w-3, y+h, 0xEE0A0C14);
+        drawRect(x+3, y,   x+w-3, y+h,   0xEE0A0C14);
         drawRect(x,   y+3, x+w,   y+h-3, 0xEE0A0C14);
         drawHollowRect(x+1, y+1, x+w-1, y+h-1, 0x18FFFFFF);
         drawHollowRect(x+2, y+2, x+w-2, y+h-2, 0x10FFFFFF);
@@ -336,7 +425,6 @@ public class ModernClickGUI extends GuiScreen {
         int panelX = W/2-230, panelY = H/2-140;
         int panelW = 460,     panelH = 280;
 
-        // Sidebar category buttons
         int btnY = panelY+38, btnH = 22;
         for (int i = 0; i < categories.size(); i++) {
             if (mx >= panelX+6 && mx <= panelX+SIDEBAR_W-6 && my >= btnY && my <= btnY+btnH) {
@@ -345,7 +433,6 @@ public class ModernClickGUI extends GuiScreen {
             btnY += btnH + 3;
         }
 
-        // Cards
         ModuleCategory cat = categories.get(selectedCategory);
         int cx      = panelX + SIDEBAR_W;
         int cw      = panelW - SIDEBAR_W;
@@ -365,11 +452,11 @@ public class ModernClickGUI extends GuiScreen {
                     m.toggle();
                     AmethystClient.moduleManager.saveConfig();
                 } else if (btn == 1) {
-                    // Right click → open settings popup
                     if      (m instanceof ColorChanger) mc.displayGuiScreen(new ColorPickerGUI(this, (ColorChanger) m));
                     else if (m instanceof Nametag)      mc.displayGuiScreen(new NametagPickerGUI(this, (Nametag) m));
                     else if (m instanceof Scoreboard)   mc.displayGuiScreen(new ScoreboardPickerGUI(this, (Scoreboard) m));
                     else if (m instanceof CustomChat)   mc.displayGuiScreen(new CustomChatPickerGUI(this, (CustomChat) m));
+                    else if (m instanceof ClickGUI)     mc.displayGuiScreen(new ClickGUIPickerGUI(this, (ClickGUI) m));
                 }
                 return;
             }
@@ -382,10 +469,7 @@ public class ModernClickGUI extends GuiScreen {
 
     @Override
     protected void keyTyped(char ch, int key) throws IOException {
-        if (key == 1) { // ESC
-            closing = true;
-            return;
-        }
+        if (key == 1) { closing = true; return; }
         super.keyTyped(ch, key);
     }
 

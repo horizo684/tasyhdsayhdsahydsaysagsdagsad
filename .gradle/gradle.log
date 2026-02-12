@@ -29,131 +29,25 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\CustomChat.java:16: error: class GuiNewChatHook is public, should be declared in a file named GuiNewChatHook.java
-public class GuiNewChatHook {
-       ^
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:3: error: cannot find symbol
-import com.amethyst.client.modules.CustomChat;
-                                  ^
-  symbol:   class CustomChat
-  location: package com.amethyst.client.modules
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:64: error: cannot find symbol
-    private void handleChatScroll(CustomChat mod) {
-                                  ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:3: error: cannot find symbol
-import com.amethyst.client.modules.CustomChat;
-                                  ^
-  symbol:   class CustomChat
-  location: package com.amethyst.client.modules
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:13: error: cannot find symbol
-    private final CustomChat chat;
-                  ^
-  symbol:   class CustomChat
-  location: class CustomChatPickerGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatPickerGUI.java:22: error: cannot find symbol
-    public CustomChatPickerGUI(GuiScreen parent, CustomChat chat) {
-                                                 ^
-  symbol:   class CustomChat
-  location: class CustomChatPickerGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModuleManager.java:19: error: cannot find symbol
-        modules.add(new CustomChat());    // ? NEW
-                        ^
-  symbol:   class CustomChat
-  location: class ModuleManager
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:55: error: cannot find symbol
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-        ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:55: error: cannot find symbol
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                          ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:99: error: cannot find symbol
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-        ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:99: error: cannot find symbol
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                          ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:306: error: cannot find symbol
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-        ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomChatRenderer.java:306: error: cannot find symbol
-        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                          ^
-  symbol:   class CustomChat
-  location: class CustomChatRenderer
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\GuiNewChatHook.java:51: error: cannot find symbol
-                com.amethyst.client.modules.CustomChat customChat = 
-                                           ^
-  symbol:   class CustomChat
-  location: package com.amethyst.client.modules
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\GuiNewChatHook.java:52: error: cannot find symbol
-                    (com.amethyst.client.modules.CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                                                ^
-  symbol:   class CustomChat
-  location: package com.amethyst.client.modules
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:136: error: cannot find symbol
-        CustomChat m = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-        ^
-  symbol:   class CustomChat
-  location: class HUDEditorGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:136: error: cannot find symbol
-        CustomChat m = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                        ^
-  symbol:   class CustomChat
-  location: class HUDEditorGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:260: error: cannot find symbol
-            CustomChat chat = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-            ^
-  symbol:   class CustomChat
-  location: class HUDEditorGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\HUDEditorGUI.java:260: error: cannot find symbol
-            CustomChat chat = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
-                               ^
-  symbol:   class CustomChat
-  location: class HUDEditorGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:82: error: cannot find symbol
-                  || m instanceof Scoreboard  || m instanceof CustomChat)
-                                                              ^
-  symbol:   class CustomChat
-  location: class ModernClickGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:309: error: cannot find symbol
-            || m instanceof Scoreboard  || m instanceof CustomChat;
-                                                        ^
-  symbol:   class CustomChat
-  location: class ModernClickGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:372: error: cannot find symbol
-                    else if (m instanceof CustomChat)   mc.displayGuiScreen(new CustomChatPickerGUI(this, (CustomChat) m));
-                                          ^
-  symbol:   class CustomChat
-  location: class ModernClickGUI
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\ModernClickGUI.java:372: error: cannot find symbol
-                    else if (m instanceof CustomChat)   mc.displayGuiScreen(new CustomChatPickerGUI(this, (CustomChat) m));
-                                                                                                           ^
-  symbol:   class CustomChat
-  location: class ModernClickGUI
-23 errors
- FAILED
+:compileJava
+:processResources
+:classes
+:jar
+:sourceTestJava
+:compileTestJava UP-TO-DATE
+:processTestResources UP-TO-DATE
+:testClasses UP-TO-DATE
+:test UP-TO-DATE
+:reobfJar
+:extractRangemapReplacedMain
+C:\Users\horizo\Desktop\newclient\build\sources\main\java
+:retromapReplacedMain
+remapping source...
+:sourceJar
+:assemble
+:check UP-TO-DATE
+:build
 
-FAILURE: Build failed with an exception.
+BUILD SUCCESSFUL
 
-* What went wrong:
-Execution failed for task ':compileJava'.
-> Compilation failed; see the compiler error output for details.
-
-* Try:
-Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output.
-
-BUILD FAILED
-
-Total time: 48.697 secs
+Total time: 31.984 secs
