@@ -139,14 +139,53 @@ public class HUDEditorGUI extends GuiScreen {
         int x = HUDConfig.getChatX();
         int y = resolveChatY(sr);
 
-        int w = 200; int h = 44;
-        if (m.isShowBackground()) drawRect(x, y, x + w, y + h, (int)(m.getBgAlpha() * 180) << 24);
-        drawHollowRect(x, y, x + w, y + h, 0xAA55AAFF);
-        mc.fontRendererObj.drawStringWithShadow("§7Player: hello world!", x + 2, y + 2, 0xFFCCCCCC);
-        mc.fontRendererObj.drawStringWithShadow("§a[Server]§f Welcome!", x + 2, y + 14, 0xFFCCCCCC);
-        mc.fontRendererObj.drawStringWithShadow("§cAdmin§f: gg", x + 2, y + 26, 0xFFCCCCCC);
-        mc.fontRendererObj.drawStringWithShadow("§8[Chat]", x + 2, y + h - 10, 0xFF666666);
-        drawBoundingBox(mx, my, x, y, w, h, 0x55AAFF);
+        // Реальный размер чата на основе настроек
+        float chatScale = m.getChatScale();
+        float chatWidth = m.getChatWidth();
+        int chatWidthPx = (int)(320 * chatWidth * chatScale);
+        int maxMessages = m.getMaxMessages();
+        int h = maxMessages * 9; // Высота на основе количества сообщений
+        
+        // Рисуем превью с учетом масштаба
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(chatScale, chatScale, 1f);
+        
+        int sx = (int)(x / chatScale);
+        int sy = (int)(y / chatScale);
+        int sw = (int)(320 * chatWidth);
+        int sh = maxMessages * 9;
+        
+        // Background
+        if (m.isShowBackground()) {
+            int bgAlpha = (int)(m.getBgAlpha() * 180);
+            drawRect(sx, sy, sx + sw, sy + sh, (bgAlpha << 24));
+        }
+        
+        // Граница чата
+        drawHollowRect(sx, sy, sx + sw, sy + sh, 0xAA55AAFF);
+        
+        // Примеры сообщений (рисуем снизу вверх)
+        int textColor = m.getTextColor();
+        int lineY = sy + sh - 9;
+        
+        String[] messages = {
+            "§cAdmin§f: gg",
+            "§a[Server]§f Welcome!",
+            "§7Player: hello world!"
+        };
+        
+        for (int i = 0; i < Math.min(messages.length, maxMessages); i++) {
+            mc.fontRendererObj.drawStringWithShadow(messages[i], sx + 2, lineY + 1, textColor);
+            lineY -= 9;
+        }
+        
+        // Метка [Chat] вверху
+        mc.fontRendererObj.drawStringWithShadow("§8[Chat]", sx + 2, sy + 2, 0xFF666666);
+        
+        GlStateManager.popMatrix();
+        
+        // Граница для перетаскивания (в реальных координатах)
+        drawBoundingBox(mx, my, x, y, chatWidthPx, h, 0x55AAFF);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -221,7 +260,12 @@ public class HUDEditorGUI extends GuiScreen {
             CustomChat chat = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
             if (chat != null && chat.isEnabled()) {
                 int y = resolveChatY(sr);
-                if (tryStartDrag(mx, my, HUDConfig.getChatX(), y, 200, 44, HUDElement.CHAT)) return;
+                float chatScale = chat.getChatScale();
+                float chatWidth = chat.getChatWidth();
+                int chatWidthPx = (int)(320 * chatWidth * chatScale);
+                int maxMessages = chat.getMaxMessages();
+                int chatHeight = maxMessages * 9;
+                if (tryStartDrag(mx, my, HUDConfig.getChatX(), y, chatWidthPx, chatHeight, HUDElement.CHAT)) return;
             }
         }
         super.mouseClicked(mx, my, btn);
