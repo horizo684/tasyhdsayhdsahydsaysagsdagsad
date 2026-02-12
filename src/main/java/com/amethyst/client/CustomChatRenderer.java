@@ -77,11 +77,11 @@ public class CustomChatRenderer {
         
         int scroll = org.lwjgl.input.Mouse.getEventDWheel();
         if (scroll != 0) {
-            // Изменяем целевую позицию скрола - медленнее и плавнее
-            int scrollAmount = scroll > 0 ? 1 : -1; // Скроллим по 1 строке за раз для большей плавности
+            // Очень плавный скроллинг - всего 1 строка за раз
+            float scrollAmount = (scroll > 0 ? 1.0f : -1.0f);
             targetScrollOffset += scrollAmount;
             
-            // Обмеження скролу
+            // Ограничения скрола
             if (targetScrollOffset < 0) targetScrollOffset = 0;
             
             try {
@@ -95,17 +95,6 @@ public class CustomChatRenderer {
                 e.printStackTrace();
             }
         }
-        
-        // Плавное движение к целевой позиции - всегда обновляем для очень гладкой анимации
-        if (Math.abs(smoothScrollOffset - targetScrollOffset) > 0.001f) {
-            float diff = targetScrollOffset - smoothScrollOffset;
-            smoothScrollOffset += diff * SCROLL_SPEED;
-            // Если очень близко к цели, устанавливаем точное значение
-            if (Math.abs(diff) < 0.01f) {
-                smoothScrollOffset = targetScrollOffset;
-            }
-        }
-        scrollOffset = Math.round(smoothScrollOffset);
     }
 
     // ── Draw custom chat ──────────────────────────────────────────────────────
@@ -136,6 +125,24 @@ public class CustomChatRenderer {
             float chatWidth = mod.getChatWidth();
             float chatScale = mod.getChatScale();
             float chatOpacity = mod.getChatOpacity();
+            
+            // Периодическая очистка кеша старых сообщений (каждые 100 тиков)
+            if (!chatOpen && updateCounter % 100 == 0) {
+                messageAppearTimes.entrySet().removeIf(entry -> {
+                    long age = System.currentTimeMillis() - entry.getValue();
+                    return age > 15000; // Удаляем записи старше 15 секунд
+                });
+            }
+            
+            // Постоянно обновляем плавную анимацию скроллинга
+            if (Math.abs(smoothScrollOffset - targetScrollOffset) > 0.01f) {
+                float diff = targetScrollOffset - smoothScrollOffset;
+                // Очень медленное и плавное сглаживание
+                smoothScrollOffset += diff * 0.15f;
+            } else {
+                smoothScrollOffset = targetScrollOffset;
+            }
+            scrollOffset = Math.round(smoothScrollOffset);
 
             // Ширина чата в пикселях (как в ванилле: 320 * width_multiplier)
             int chatWidthPx = (int)(320 * chatWidth);
@@ -148,15 +155,13 @@ public class CustomChatRenderer {
 
             // Рахуємо скільки видимих рядків у нас є з урахуванням скролу
             List<ChatLine> visibleLines = new java.util.ArrayList<>();
-            int startIndex = chatOpen ? scrollOffset : 0; // Скрол працює тільки коли чат відкритий
+            // Используем smoothScrollOffset напрямую для максимальной плавности
+            int startIndex = chatOpen ? (int)smoothScrollOffset : 0;
             
             // Собираем видимые сообщения
             for (int i = startIndex; i < drawnLines.size() && visibleLines.size() < maxMessages; i++) {
                 ChatLine line = drawnLines.get(i);
                 if (line == null) continue;
-                
-                int lineAge = updateCounter - line.getUpdatedCounter();
-                if (!chatOpen && lineAge >= 300) continue; // Швидше видалення: 15 секунд
                 
                 visibleLines.add(line);
             }
@@ -175,7 +180,12 @@ public class CustomChatRenderer {
             // КРИТИЧНО: Завжди починаємо знизу чату (не від totalHeight!)
             // Це забезпечує що повідомлення ЗАВЖДИ ростуть знизу вверх
             int maxChatHeight = maxMessages * 9;
-            int lineY = sy + maxChatHeight - 9; // Починаємо з низу чату
+            
+            // Добавляем плавное смещение при скроллинге
+            float scrollFraction = smoothScrollOffset - (int)smoothScrollOffset;
+            int pixelOffset = (int)(scrollFraction * 9); // 9 пикселей на строку
+            
+            int lineY = sy + maxChatHeight - 9 + pixelOffset; // Начинаем с низа чата + плавное смещение
             lastMessageBounds.clear();
             
             // Ітеруємо від початку до кінця (новые сообщения первыми)
@@ -190,18 +200,31 @@ public class CustomChatRenderer {
                 if (chatOpen) {
                     opacity = 1.0;
                 } else {
-                    // Швидше затухання: 300 тиків (15 секунд замість 30)
-                    if (lineAge >= 300) continue;
+                    // Как в обычном Minecraft: 10 секунд до полного исчезновения
+                    // СТРОГАЯ проверка - если старше 200 тиков, вообще не обрабатываем
+                    if (lineAge >= 200) {
+                        // Очищаем из кеша появления
+                        String key = line.getChatComponent().getFormattedText();
+                        messageAppearTimes.remove(key);
+                        continue;
+                    }
                     
-                    if (lineAge < 200) {
-                        // Перші 10 секунд - повна видимість
+                    if (lineAge < 140) {
+                        // Первые 7 секунд - полная видимость
                         opacity = 1.0;
                     } else {
-                        // Наступні 5 секунд - плавне затухання
-                        float fadeProgress = (float)(lineAge - 200) / 100.0f;
+                        // Следующие 3 секунды - плавное затухание фона и текста
+                        float fadeProgress = (float)(lineAge - 140) / 60.0f;
                         // Применяем smoothstep для очень плавного затухания
                         fadeProgress = fadeProgress * fadeProgress * (3.0f - 2.0f * fadeProgress);
                         opacity = 1.0 - fadeProgress;
+                        
+                        // Дополнительная защита от мигания - если почти невидимо, пропускаем
+                        if (opacity < 0.01) {
+                            String key = line.getChatComponent().getFormattedText();
+                            messageAppearTimes.remove(key);
+                            continue;
+                        }
                     }
                 }
 
@@ -223,12 +246,14 @@ public class CustomChatRenderer {
                 }
 
                 int alpha = (int) (opacity * 255);
-                if (alpha < 3) {
+                if (alpha < 5) { // Увеличен порог с 3 до 5 для предотвращения мигания
                     // Пропускаем, но все равно двигаем Y вверх для правильной позиции следующих сообщений
                     String text = line.getChatComponent().getFormattedText();
                     int maxWidth = chatWidthPx - 4;
                     List<String> lines = wrapText(mc.fontRendererObj, text, maxWidth);
                     lineY -= lines.size() * 9;
+                    // Очищаем из кеша
+                    messageAppearTimes.remove(text);
                     continue;
                 }
 
