@@ -160,24 +160,40 @@ public class CustomChatPickerGUI extends GuiScreen {
 
         if (mx>=10 && mx<=80 && my>=h-22 && my<=h-6) { mc.displayGuiScreen(parent); return; }
 
-        int cy = 30, gap = 28;
         int x = w/2 - 90;
+        int cy = 30;
+        int gap = 28;
 
+        // Toggles - drawToggle повертає y+10, потім додається gap
         if (clickToggle(mx, my, x + 140, cy - 2)) { chat.setShowBackground(!chat.isShowBackground()); return; }
+        cy += 10; // як повертає drawToggle
         cy += gap;
+        
         if (clickToggle(mx, my, x + 140, cy - 2)) { chat.setFadeMessages(!chat.isFadeMessages()); return; }
+        cy += 10;
         cy += gap;
+        
         if (clickToggle(mx, my, x + 140, cy - 2)) { chat.setShowTimestamps(!chat.isShowTimestamps()); return; }
+        cy += 10;
         cy += gap + 5;
 
+        // Sliders - drawSlider повертає y+20, потім додається gap
         if (clickSlider(mx, my, x, cy + 10)) { draggingBg = true; updateBg(mx, x); return; }
+        cy += 20; // як повертає drawSlider
         cy += gap;
+        
         if (clickSlider(mx, my, x, cy + 10)) { draggingWidth = true; updateWidth(mx, x); return; }
+        cy += 20;
         cy += gap;
+        
         if (clickSlider(mx, my, x, cy + 10)) { draggingOpacity = true; updateOpacity(mx, x); return; }
+        cy += 20;
         cy += gap;
+        
         if (clickSlider(mx, my, x, cy + 10)) { draggingScale = true; updateScale(mx, x); return; }
+        cy += 20;
         cy += gap;
+        
         if (clickSlider(mx, my, x, cy + 10)) { draggingLines = true; updateLines(mx, x); return; }
 
         super.mouseClicked(mx, my, btn);

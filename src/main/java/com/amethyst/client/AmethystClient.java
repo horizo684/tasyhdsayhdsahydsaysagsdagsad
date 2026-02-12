@@ -15,6 +15,7 @@ public class AmethystClient {
     public static ModuleManager  moduleManager;
     public static FriendManager  friendManager;
     public static AmethystConfig config;
+    public static CustomChatRenderer customChatRenderer;
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -38,8 +39,9 @@ public class AmethystClient {
         MinecraftForge.EVENT_BUS.register(new ScreenshotClickHandler());
 
         // NEW: Scoreboard + Chat renderers
+        customChatRenderer = new CustomChatRenderer();
         MinecraftForge.EVENT_BUS.register(new ScoreboardRenderer());
-        MinecraftForge.EVENT_BUS.register(new CustomChatRenderer());
+        MinecraftForge.EVENT_BUS.register(customChatRenderer);
         // Suppress vanilla scoreboard sidebar when our module is active
         MinecraftForge.EVENT_BUS.register(new VanillaScoreboardSuppressor());
 

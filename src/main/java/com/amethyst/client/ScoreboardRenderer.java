@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Score;
+import net.minecraftforge.client.GuiIngameForge;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -19,14 +20,13 @@ public class ScoreboardRenderer {
 
     private final Minecraft mc = Minecraft.getMinecraft();
 
-    // ── CANCEL vanilla scoreboard ─────────────────────────────────────────────
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onRenderPre(RenderGameOverlayEvent.Pre event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.PLAYER_LIST) return;
-
+    // ── Відключаємо ванільний scoreboard через Forge ──────────────────────────
+    public static void updateScoreboardVisibility() {
         Scoreboard mod = (Scoreboard) AmethystClient.moduleManager.getModuleByName("Scoreboard");
         if (mod != null && mod.isEnabled()) {
-            event.setCanceled(true);
+            GuiIngameForge.renderObjective = false;
+        } else {
+            GuiIngameForge.renderObjective = true;
         }
     }
 
@@ -34,6 +34,9 @@ public class ScoreboardRenderer {
     @SubscribeEvent(priority = EventPriority.NORMAL)
     public void onRenderPost(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
+
+        // Оновлюємо видимість ванільного scoreboard
+        updateScoreboardVisibility();
 
         Scoreboard mod = (Scoreboard) AmethystClient.moduleManager.getModuleByName("Scoreboard");
         if (mod == null || !mod.isEnabled()) return;
@@ -95,7 +98,11 @@ public class ScoreboardRenderer {
         mc.fontRendererObj.drawStringWithShadow(title, sx + boxWidth / 2 - titleWidth / 2, sy, mod.getTitleColor());
 
         int currentY = sy + 11;
-        for (Score score : filteredScores) {
+        // Реверсуємо список щоб текст відображався правильно (зверху вниз)
+        List<Score> reversedScores = new ArrayList<>(filteredScores);
+        java.util.Collections.reverse(reversedScores);
+        
+        for (Score score : reversedScores) {
             ScorePlayerTeam team = objective.getScoreboard().getPlayersTeam(score.getPlayerName());
             String displayText = ScorePlayerTeam.formatPlayerName(team, score.getPlayerName());
 

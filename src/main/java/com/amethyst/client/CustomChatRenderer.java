@@ -22,6 +22,17 @@ public class CustomChatRenderer {
     private Field drawnChatLinesField;
     private Map<String, Long> messageAppearTimes = new LinkedHashMap<>();
     private static final long FADE_IN_DURATION = 200;
+    private int scrollOffset = 0; // Кількість рядків для скролу
+    
+    // Для обробки кліків на іконку копіювання
+    private static class MessageBounds {
+        int x, y, width, height;
+        String message;
+        MessageBounds(int x, int y, int width, int height, String message) {
+            this.x = x; this.y = y; this.width = width; this.height = height; this.message = message;
+        }
+    }
+    private List<MessageBounds> lastMessageBounds = new java.util.ArrayList<>();
 
     public CustomChatRenderer() {
         try {
@@ -46,6 +57,40 @@ public class CustomChatRenderer {
         CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
         if (mod != null && mod.isEnabled()) {
             event.setCanceled(true);
+            
+            // Обробка скролінгу чату
+            handleChatScroll(mod);
+        }
+    }
+    
+    private void handleChatScroll(CustomChat mod) {
+        GuiNewChat chat = mc.ingameGUI.getChatGUI();
+        if (chat == null || !chat.getChatOpen()) {
+            scrollOffset = 0; // Скидаємо скрол коли чат закритий
+            return;
+        }
+        
+        int scroll = org.lwjgl.input.Mouse.getEventDWheel();
+        if (scroll != 0) {
+            if (scroll > 0) {
+                scrollOffset++; // Скрол вгору - показати старіші повідомлення
+            } else {
+                scrollOffset--; // Скрол вниз - показати новіші повідомлення
+            }
+            
+            // Обмеження скролу
+            if (scrollOffset < 0) scrollOffset = 0;
+            
+            try {
+                if (drawnChatLinesField != null) {
+                    @SuppressWarnings("unchecked")
+                    List<ChatLine> drawnLines = (List<ChatLine>) drawnChatLinesField.get(chat);
+                    int maxScroll = Math.max(0, drawnLines.size() - mod.getMaxMessages());
+                    if (scrollOffset > maxScroll) scrollOffset = maxScroll;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -87,29 +132,46 @@ public class CustomChatRenderer {
             int sx = (int)(x / chatScale);
             int sy = (int)(y / chatScale);
 
-            int lineY = sy;
-            int linesDrawn = 0;
-
-            for (int i = 0; i < drawnLines.size() && linesDrawn < maxMessages; i++) {
+            // Рахуємо скільки видимих рядків у нас є з урахуванням скролу
+            List<ChatLine> visibleLines = new java.util.ArrayList<>();
+            int startIndex = chatOpen ? scrollOffset : 0; // Скрол працює тільки коли чат відкритий
+            
+            for (int i = startIndex; i < drawnLines.size() && visibleLines.size() < maxMessages; i++) {
                 ChatLine line = drawnLines.get(i);
+                if (line == null) continue;
+                
+                int lineAge = updateCounter - line.getUpdatedCounter();
+                if (!chatOpen && lineAge >= 400) continue;
+                
+                visibleLines.add(line);
+            }
+
+            // Малюємо знизу вгору, починаючи з найстаршого повідомлення
+            // (реверсуємо список щоб найстаріші були вгорі, найновіші внизу)
+            int lineY = sy;
+            lastMessageBounds.clear(); // Очищаємо попередні границі
+            
+            // Ітеруємо у зворотньому порядку (від кінця до початку)
+            for (int i = visibleLines.size() - 1; i >= 0; i--) {
+                ChatLine line = visibleLines.get(i);
                 if (line == null) continue;
 
                 int lineAge = updateCounter - line.getUpdatedCounter();
 
-                // ФИКС: Когда чат открыт — показываем ВСЕ сообщения с полной непрозрачностью
+                // Коли чат відкритий — показуємо всі повідомлення з повною непрозорістю
                 double opacity;
                 if (chatOpen) {
                     opacity = 1.0;
                 } else {
-                    // Когда чат закрыт — применяем fade-out после 200 тиков
-                    if (lineAge >= 200) continue;
-                    opacity = 1.0 - (double) lineAge / 200.0;
+                    // Коли чат закритий — застосовуємо fade-out після 400 тиків (20 секунд)
+                    if (lineAge >= 400) continue;
+                    opacity = 1.0 - (double) lineAge / 400.0;
                 }
 
                 opacity = opacity * opacity; // smooth curve
                 opacity *= chatOpacity; // user setting
 
-                // Fade-in анимация (если включено)
+                // Fade-in анимація (якщо увімкнено)
                 if (mod.isFadeMessages() && !chatOpen) {
                     String key = line.getChatComponent().getFormattedText();
                     if (!messageAppearTimes.containsKey(key)) {
@@ -135,19 +197,49 @@ public class CustomChatRenderer {
                 // Text
                 String text = line.getChatComponent().getFormattedText();
                 
-                // Обрезаем текст если он шире чем chatWidth
-                if (mc.fontRendererObj.getStringWidth(text) > chatWidthPx - 4) {
-                    text = mc.fontRendererObj.trimStringToWidth(text, chatWidthPx - 4) + "...";
+                // Перенос довгих повідомлень на нові рядки
+                int maxWidth = chatWidthPx - 4;
+                List<String> lines = wrapText(mc.fontRendererObj, text, maxWidth);
+                
+                int lineStartY = lineY; // Зберігаємо початкову Y для іконки копіювання
+                
+                for (String wrappedLine : lines) {
+                    mc.fontRendererObj.drawStringWithShadow(wrappedLine, sx + 2, lineY + 1, 
+                        (alpha << 24) | (mod.getTextColor() & 0xFFFFFF));
+                    lineY += 9;
                 }
-
-                mc.fontRendererObj.drawStringWithShadow(text, sx + 2, lineY + 1, 
-                    (alpha << 24) | (mod.getTextColor() & 0xFFFFFF));
-
-                lineY += 9;
-                linesDrawn++;
+                
+                // Малюємо іконку копіювання якщо чат відкритий і модуль CopyChat увімкнений
+                if (chatOpen) {
+                    Module copyChat = AmethystClient.moduleManager.getModuleByName("CopyChat");
+                    if (copyChat != null && copyChat.isEnabled()) {
+                        String copyIcon = "§a[§f+§a]";
+                        int iconWidth = mc.fontRendererObj.getStringWidth(copyIcon);
+                        int iconX = sx + chatWidthPx - iconWidth - 2;
+                        mc.fontRendererObj.drawStringWithShadow(copyIcon, iconX, lineStartY + 1, 
+                            0xFFFFFFFF | (alpha << 24));
+                        
+                        // Зберігаємо позицію для обробки кліків (з урахуванням масштабу)
+                        int realX = (int)(iconX * chatScale);
+                        int realY = (int)(lineStartY * chatScale);
+                        int realWidth = (int)(iconWidth * chatScale);
+                        int realHeight = 9;
+                        lastMessageBounds.add(new MessageBounds(realX, realY, realWidth, realHeight, text));
+                    }
+                }
             }
 
             GlStateManager.popMatrix();
+            
+            // Показуємо індикатор скролу якщо чат проскролений
+            if (chatOpen && scrollOffset > 0) {
+                String scrollIndicator = "▲ +" + scrollOffset + " Старых сообщений";
+                int indicatorWidth = mc.fontRendererObj.getStringWidth(scrollIndicator);
+                mc.fontRendererObj.drawStringWithShadow(scrollIndicator, 
+                    x + (chatWidthPx - indicatorWidth) / 2, 
+                    y - 12, 
+                    0xFF88AAFF);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -156,5 +248,64 @@ public class CustomChatRenderer {
 
     private void drawRect(int left, int top, int right, int bottom, int color) {
         net.minecraft.client.gui.Gui.drawRect(left, top, right, bottom, color);
+    }
+
+    // Метод для розбиття довгого тексту на кілька рядків
+    private List<String> wrapText(net.minecraft.client.gui.FontRenderer fr, String text, int maxWidth) {
+        List<String> result = new java.util.ArrayList<>();
+        
+        if (fr.getStringWidth(text) <= maxWidth) {
+            result.add(text);
+            return result;
+        }
+        
+        String[] words = text.split(" ");
+        StringBuilder currentLine = new StringBuilder();
+        
+        for (String word : words) {
+            String testLine = currentLine.length() == 0 ? word : currentLine + " " + word;
+            
+            if (fr.getStringWidth(testLine) <= maxWidth) {
+                if (currentLine.length() > 0) currentLine.append(" ");
+                currentLine.append(word);
+            } else {
+                if (currentLine.length() > 0) {
+                    result.add(currentLine.toString());
+                    currentLine = new StringBuilder(word);
+                } else {
+                    // Слово само по собі задовге - обрізаємо його
+                    result.add(fr.trimStringToWidth(word, maxWidth));
+                }
+            }
+        }
+        
+        if (currentLine.length() > 0) {
+            result.add(currentLine.toString());
+        }
+        
+        return result;
+    }
+    
+    // Метод для обробки кліків по іконці копіювання
+    public void handleChatClick(int mouseX, int mouseY) {
+        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+        if (mod == null || !mod.isEnabled()) return;
+        
+        Module copyChat = AmethystClient.moduleManager.getModuleByName("CopyChat");
+        if (copyChat == null || !copyChat.isEnabled()) return;
+        
+        GuiNewChat chat = mc.ingameGUI.getChatGUI();
+        if (chat == null || !chat.getChatOpen()) return;
+        
+        // Перевіряємо чи клік був на іконці копіювання
+        for (MessageBounds bounds : lastMessageBounds) {
+            if (mouseX >= bounds.x && mouseX <= bounds.x + bounds.width &&
+                mouseY >= bounds.y && mouseY <= bounds.y + bounds.height) {
+                // Копіюємо повідомлення
+                String cleanMessage = bounds.message.replaceAll("§[0-9a-fk-or]", "");
+                ChatCopyButton.copyToClipboard(cleanMessage);
+                return;
+            }
+        }
     }
 }

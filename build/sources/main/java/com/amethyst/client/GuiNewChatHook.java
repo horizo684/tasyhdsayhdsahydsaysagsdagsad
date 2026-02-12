@@ -95,16 +95,28 @@ public class GuiNewChatHook {
                 int mouseX = org.lwjgl.input.Mouse.getEventX() * event.gui.width / mc.displayWidth;
                 int mouseY = event.gui.height - org.lwjgl.input.Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
                 
-                FontRenderer fontRenderer = mc.fontRendererObj;
-                int iconWidth = fontRenderer.getStringWidth("§a[§f+§a]") + 3;
+                // Спочатку перевіряємо чи CustomChat увімкнений
+                com.amethyst.client.modules.CustomChat customChat = 
+                    (com.amethyst.client.modules.CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
                 
-                if (mouseX >= 2 && mouseX <= 2 + iconWidth) {
-                    IChatComponent chatComponent = mc.ingameGUI.getChatGUI().getChatComponent(mouseX, mouseY);
+                if (customChat != null && customChat.isEnabled()) {
+                    // Використовуємо обробник кліків з CustomChatRenderer
+                    if (AmethystClient.customChatRenderer != null) {
+                        AmethystClient.customChatRenderer.handleChatClick(mouseX, mouseY);
+                    }
+                } else {
+                    // Ванільний чат - використовуємо старий код
+                    FontRenderer fontRenderer = mc.fontRendererObj;
+                    int iconWidth = fontRenderer.getStringWidth("§a[§f+§a]") + 3;
                     
-                    if (chatComponent != null) {
-                        String fullMessage = chatComponent.getFormattedText();
-                        fullMessage = fullMessage.replaceAll("§[0-9a-fk-or]", "");
-                        ChatCopyButton.copyToClipboard(fullMessage);
+                    if (mouseX >= 2 && mouseX <= 2 + iconWidth) {
+                        IChatComponent chatComponent = mc.ingameGUI.getChatGUI().getChatComponent(mouseX, mouseY);
+                        
+                        if (chatComponent != null) {
+                            String fullMessage = chatComponent.getFormattedText();
+                            fullMessage = fullMessage.replaceAll("§[0-9a-fk-or]", "");
+                            ChatCopyButton.copyToClipboard(fullMessage);
+                        }
                     }
                 }
             } catch (Exception e) {
