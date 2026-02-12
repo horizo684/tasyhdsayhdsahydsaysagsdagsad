@@ -132,27 +132,39 @@ public class AsyncScreenshot extends Module {
         // Кнопка [OPEN]
         ChatComponentText openBtn = new ChatComponentText("§8[§a§lOPEN§8]");
         openBtn.getChatStyle()
+            .setChatClickEvent(new ClickEvent(
+                ClickEvent.Action.RUN_COMMAND,
+                "/screenshot_open"
+            ))
             .setChatHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
-                new ChatComponentText("§aОткрыть в просмотрщике\n§0" + MARKER_OPEN)
+                new ChatComponentText("§aВідкрити скріншот")
             ));
 
         // Кнопка [COPY]
         ChatComponentText sep1 = new ChatComponentText(" §8│ ");
         ChatComponentText copyBtn = new ChatComponentText("§8[§b§lCOPY§8]");
         copyBtn.getChatStyle()
+            .setChatClickEvent(new ClickEvent(
+                ClickEvent.Action.RUN_COMMAND,
+                "/screenshot_copy"
+            ))
             .setChatHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
-                new ChatComponentText("§bСкопировать изображение\n§0" + MARKER_COPY)
+                new ChatComponentText("§bСкопіювати зображення")
             ));
 
         // Кнопка [EXPORT]
         ChatComponentText sep2 = new ChatComponentText(" §8│ ");
         ChatComponentText exportBtn = new ChatComponentText("§8[§e§lEXPORT§8]");
         exportBtn.getChatStyle()
+            .setChatClickEvent(new ClickEvent(
+                ClickEvent.Action.RUN_COMMAND,
+                "/screenshot_export"
+            ))
             .setChatHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
-                new ChatComponentText("§eСохранить как…\n§0" + MARKER_EXPORT)
+                new ChatComponentText("§eЗберегти як…")
             ));
 
         // Имя файла серым

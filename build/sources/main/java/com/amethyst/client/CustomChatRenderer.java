@@ -164,14 +164,14 @@ public class CustomChatRenderer {
                 ChatLine line = drawnLines.get(i);
                 if (line == null) continue;
                 
-                int lineAge = updateCounter - line.getUpdatedCounter();
-                if (!chatOpen && lineAge >= 200) continue; // Как в обычном Minecraft: 10 секунд
-                
+                // Показываем все сообщения без ограничения по времени (как в ванильном Minecraft)
+                // Затухание будет применяться ниже в логике рендеринга
                 visibleLines.add(line);
             }
 
             // Малюємо знизу вгору
-            // Новые сообщения (индекс 0) будут внизу, старые (последний индекс) вверху
+            // У drawnLines індекс 0 = НАЙНОВІШЕ повідомлення
+            // Малюємо у ЗВОРОТНОМУ порядку щоб найновіше було ЗНИЗУ
             int totalHeight = 0;
             for (ChatLine line : visibleLines) {
                 if (line == null) continue;
@@ -192,8 +192,9 @@ public class CustomChatRenderer {
             int lineY = sy + maxChatHeight - 9 + pixelOffset; // Начинаем с низа чата + плавное смещение
             lastMessageBounds.clear();
             
-            // Ітеруємо від початку до кінця (новые сообщения первыми)
-            for (int i = 0; i < visibleLines.size(); i++) {
+            // Ітеруємо у ЗВОРОТНОМУ порядку (від останнього до першого)
+            // щоб найновіше повідомлення (індекс 0) було знизу
+            for (int i = visibleLines.size() - 1; i >= 0; i--) {
                 ChatLine line = visibleLines.get(i);
                 if (line == null) continue;
 
@@ -204,31 +205,19 @@ public class CustomChatRenderer {
                 if (chatOpen) {
                     opacity = 1.0;
                 } else {
-                    // Как в обычном Minecraft: 10 секунд до полного исчезновения
-                    // СТРОГАЯ проверка - если старше 200 тиков, вообще не обрабатываем
-                    if (lineAge >= 200) {
-                        // Очищаем из кеша появления
+                    // Як у ванільному Minecraft: 8 секунд (160 тіків) повна видимість, потім затухання
+                    if (lineAge < 160) {
+                        // Перші 8 секунд - повна видимість
+                        opacity = 1.0;
+                    } else if (lineAge < 200) {
+                        // Наступні 2 секунди (40 тіків) - плавне затухання
+                        float fadeProgress = (float)(lineAge - 160) / 40.0f;
+                        opacity = 1.0 - fadeProgress;
+                    } else {
+                        // Після 10 секунд - невидимо
                         String key = line.getChatComponent().getFormattedText();
                         messageAppearTimes.remove(key);
                         continue;
-                    }
-                    
-                    if (lineAge < 140) {
-                        // Первые 7 секунд - полная видимость
-                        opacity = 1.0;
-                    } else {
-                        // Следующие 3 секунды - плавное затухание фона и текста
-                        float fadeProgress = (float)(lineAge - 140) / 60.0f;
-                        // Применяем smoothstep для очень плавного затухания
-                        fadeProgress = fadeProgress * fadeProgress * (3.0f - 2.0f * fadeProgress);
-                        opacity = 1.0 - fadeProgress;
-                        
-                        // Дополнительная защита от мигания - если почти невидимо, пропускаем
-                        if (opacity < 0.01) {
-                            String key = line.getChatComponent().getFormattedText();
-                            messageAppearTimes.remove(key);
-                            continue;
-                        }
                     }
                 }
 
@@ -250,14 +239,12 @@ public class CustomChatRenderer {
                 }
 
                 int alpha = (int) (opacity * 255);
-                if (alpha < 5) { // Увеличен порог с 3 до 5 для предотвращения мигания
-                    // Пропускаем, но все равно двигаем Y вверх для правильной позиции следующих сообщений
+                if (alpha < 3) {
+                    // Якщо повідомлення майже невидиме, все одно рахуємо його висоту
                     String text = line.getChatComponent().getFormattedText();
                     int maxWidth = chatWidthPx - 4;
                     List<String> lines = wrapText(mc.fontRendererObj, text, maxWidth);
                     lineY -= lines.size() * 9;
-                    // Очищаем из кеша
-                    messageAppearTimes.remove(text);
                     continue;
                 }
 
