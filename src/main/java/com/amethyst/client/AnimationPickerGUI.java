@@ -8,7 +8,7 @@ import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
 
-public class AnimationsPickerGUI extends GuiScreen {
+public class AnimationPickerGUI extends GuiScreen {
 
     private final GuiScreen parent;
     private final Animations animations;
@@ -19,8 +19,12 @@ public class AnimationsPickerGUI extends GuiScreen {
     // Animation state
     private float openProgress = 0f;
     private boolean closing = false;
+    
+    // Slider dragging state
+    private boolean isDragging = false;
+    private String draggingSlider = null;
 
-    public AnimationsPickerGUI(GuiScreen parent, Animations animations) {
+    public AnimationPickerGUI(GuiScreen parent, Animations animations) {
         this.parent = parent;
         this.animations = animations;
     }
@@ -370,7 +374,52 @@ public class AnimationsPickerGUI extends GuiScreen {
         yPos = handleToggleClick(panelX + 20, yPos, panelW - 40, mx, my,
                 () -> animations.setSmoothSwing(!animations.isSmoothSwing()));
 
+        yPos += 10;
+        
+        // Swing settings section
+        yPos += 20; // header
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "swingSpeed");
+        
+        yPos += 10;
+        
+        // Item position section
+        yPos += 20; // header
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "itemPosX");
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "itemPosY");
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "itemPosZ");
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "itemScale");
+        
+        yPos += 10;
+        
+        // Block position section
+        yPos += 20; // header
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "blockPosX");
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "blockPosY");
+        yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "blockPosZ");
+        
+        yPos += 10;
+        
+        // Damage settings (if enabled)
+        if (animations.isOldDamage()) {
+            yPos += 20; // header
+            yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "armorFlashDuration");
+            yPos = handleSliderClick(panelX + 20, yPos, panelW - 40, mx, my, "armorRedIntensity");
+        }
+
         super.mouseClicked(mx, my, btn);
+    }
+
+    private int handleSliderClick(int x, int y, int w, int mx, int my, String sliderName) {
+        int barY = y + 14;
+        int barW = w - 16;
+        
+        if (mx >= x + 8 && mx <= x + 8 + barW && my >= barY - 2 && my <= barY + 8) {
+            isDragging = true;
+            draggingSlider = sliderName;
+            updateSliderValue(x, w, mx);
+        }
+        
+        return y + 26;
     }
 
     private int handleToggleClick(int x, int y, int w, int mx, int my, Runnable action) {
@@ -379,6 +428,67 @@ public class AnimationsPickerGUI extends GuiScreen {
             AmethystClient.moduleManager.saveConfig();
         }
         return y + 34;
+    }
+    
+    private void updateSliderValue(int x, int w, int mx) {
+        if (draggingSlider == null) return;
+        
+        int barW = w - 16;
+        float normalized = Math.max(0, Math.min(1, (float)(mx - (x + 8)) / barW));
+        
+        switch (draggingSlider) {
+            case "swingSpeed":
+                animations.setSwingSpeed(1.0f + normalized * 19.0f);
+                break;
+            case "itemPosX":
+                animations.setItemPosX(-2.0f + normalized * 4.0f);
+                break;
+            case "itemPosY":
+                animations.setItemPosY(-2.0f + normalized * 4.0f);
+                break;
+            case "itemPosZ":
+                animations.setItemPosZ(-2.0f + normalized * 4.0f);
+                break;
+            case "itemScale":
+                animations.setItemScale(0.1f + normalized * 0.9f);
+                break;
+            case "blockPosX":
+                animations.setBlockPosX(-1.0f + normalized * 2.0f);
+                break;
+            case "blockPosY":
+                animations.setBlockPosY(-1.0f + normalized * 2.0f);
+                break;
+            case "blockPosZ":
+                animations.setBlockPosZ(-1.0f + normalized * 2.0f);
+                break;
+            case "armorFlashDuration":
+                animations.setArmorFlashDuration((int)(1 + normalized * 39));
+                break;
+            case "armorRedIntensity":
+                animations.setArmorRedIntensity(normalized);
+                break;
+        }
+        
+        AmethystClient.moduleManager.saveConfig();
+    }
+    
+    @Override
+    protected void mouseClickMove(int mx, int my, int btn, long timeSinceClick) {
+        if (isDragging && draggingSlider != null) {
+            ScaledResolution sr = new ScaledResolution(mc);
+            int W = sr.getScaledWidth();
+            int panelW = 420;
+            int panelX = W / 2 - panelW / 2;
+            updateSliderValue(panelX + 20, panelW - 40, mx);
+        }
+        super.mouseClickMove(mx, my, btn, timeSinceClick);
+    }
+    
+    @Override
+    protected void mouseReleased(int mx, int my, int state) {
+        isDragging = false;
+        draggingSlider = null;
+        super.mouseReleased(mx, my, state);
     }
 
     @Override

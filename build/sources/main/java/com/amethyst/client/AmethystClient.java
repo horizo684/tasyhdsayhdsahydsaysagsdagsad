@@ -28,6 +28,36 @@ public class AmethystClient {
     public void init(FMLInitializationEvent event) {
         moduleManager = new ModuleManager();
         KeyBindings.register();
+        
+        // Подменяем ItemRenderer на кастомный для анимаций
+        try {
+            java.lang.reflect.Field itemRendererField = net.minecraft.client.Minecraft.class.getDeclaredField("field_71460_t"); // entityRenderer -> itemRenderer
+            if (itemRendererField == null) {
+                itemRendererField = net.minecraft.client.Minecraft.class.getDeclaredField("entityRenderer");
+            }
+            itemRendererField.setAccessible(true);
+            
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+            
+            // Получаем EntityRenderer
+            net.minecraft.client.renderer.EntityRenderer entityRenderer = mc.entityRenderer;
+            
+            // Ищем поле itemRenderer в EntityRenderer
+            java.lang.reflect.Field itemRendererInEntityRenderer = net.minecraft.client.renderer.EntityRenderer.class.getDeclaredField("field_78516_c");
+            if (itemRendererInEntityRenderer == null) {
+                itemRendererInEntityRenderer = net.minecraft.client.renderer.EntityRenderer.class.getDeclaredField("itemRenderer");
+            }
+            itemRendererInEntityRenderer.setAccessible(true);
+            
+            // Подменяем на кастомный
+            CustomItemRenderer customRenderer = new CustomItemRenderer(mc);
+            itemRendererInEntityRenderer.set(entityRenderer, customRenderer);
+            
+            System.out.println("[AmethystClient] Successfully replaced ItemRenderer with CustomItemRenderer");
+        } catch (Exception e) {
+            System.err.println("[AmethystClient] Failed to replace ItemRenderer: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         // Core renderers
         MinecraftForge.EVENT_BUS.register(new HUDRenderer());
@@ -45,6 +75,9 @@ public class AmethystClient {
         MinecraftForge.EVENT_BUS.register(customChatRenderer);
         // Suppress vanilla scoreboard sidebar when our module is active
         MinecraftForge.EVENT_BUS.register(new VanillaScoreboardSuppressor());
+        
+        // Animation handler for 1.7 animations
+        MinecraftForge.EVENT_BUS.register(new AnimationHandler());
 
         // Module-specific event listeners
         registerModuleListener("CPS Counter");

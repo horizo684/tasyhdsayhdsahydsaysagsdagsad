@@ -631,7 +631,7 @@ public class ModernClickGUI extends GuiScreen {
                     else if (m instanceof Scoreboard)   mc.displayGuiScreen(new ScoreboardPickerGUI(this, (Scoreboard) m));
                     else if (m instanceof CustomChat)   mc.displayGuiScreen(new CustomChatPickerGUI(this, (CustomChat) m));
                     else if (m instanceof ClickGUI)     mc.displayGuiScreen(new ClickGUIPickerGUI(this, (ClickGUI) m));
-                    else if (m instanceof Animations)   mc.displayGuiScreen(new AnimationsPickerGUI(this, (Animations) m));
+                    else if (m instanceof Animations)   mc.displayGuiScreen(new AnimationPickerGUI(this, (Animations) m));
                 }
                 return;
             }

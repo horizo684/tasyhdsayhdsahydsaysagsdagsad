@@ -34,7 +34,8 @@ public class Animations extends Module {
     private float armorRedIntensity = 0.8f;  // Intensity of red color (0.0-1.0)
 
     public Animations() {
-        super("Animations", "1.7 style animations", 0, Category.VISUAL);
+        super("Animations", "1.7 style animations", 0, Category.RENDER);
+        this.setEnabled(true); // Включен по умолчанию
     }
 
     // ===== Getters and Setters =====

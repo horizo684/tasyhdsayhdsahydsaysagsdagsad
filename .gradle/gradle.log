@@ -29,26 +29,27 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\AnimationPickerGUI.java:11: error: class AnimationsPickerGUI is public, should be declared in a file named AnimationsPickerGUI.java
-public class AnimationsPickerGUI extends GuiScreen {
-       ^
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\modules\Animations.java:37: error: cannot find symbol
-        super("Animations", "1.7 style animations", 0, Category.VISUAL);
-                                                               ^
-  symbol:   variable VISUAL
-  location: class Category
-2 errors
- FAILED
+:compileJavaNote: C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomItemRenderer.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
 
-FAILURE: Build failed with an exception.
+:processResources
+:classes
+:jar
+:sourceTestJava
+:compileTestJava UP-TO-DATE
+:processTestResources UP-TO-DATE
+:testClasses UP-TO-DATE
+:test UP-TO-DATE
+:reobfJar
+:extractRangemapReplacedMain
+C:\Users\horizo\Desktop\newclient\build\sources\main\java
+:retromapReplacedMain
+remapping source...
+:sourceJar
+:assemble
+:check UP-TO-DATE
+:build
 
-* What went wrong:
-Execution failed for task ':compileJava'.
-> Compilation failed; see the compiler error output for details.
+BUILD SUCCESSFUL
 
-* Try:
-Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output.
-
-BUILD FAILED
-
-Total time: 2 mins 9.036 secs
+Total time: 32.87 secs
