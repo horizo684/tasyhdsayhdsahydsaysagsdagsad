@@ -34,56 +34,8 @@ public class GuiNewChatHook {
     
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.CHAT) {
-            return;
-        }
-        
-        if (drawnChatLinesField == null) {
-            return;
-        }
-        
-        Minecraft mc = Minecraft.getMinecraft();
-        GuiNewChat chat = mc.ingameGUI.getChatGUI();
-        FontRenderer fontRenderer = mc.fontRendererObj;
-        
-        try {
-            int updateCounter = mc.ingameGUI.getUpdateCounter();
-            
-            @SuppressWarnings("unchecked")
-            List<ChatLine> drawnChatLines = (List<ChatLine>) drawnChatLinesField.get(chat);
-            
-            if (drawnChatLines == null) {
-                return;
-            }
-            
-            for (int i = 0; i < drawnChatLines.size() && i < 100; ++i) {
-                ChatLine chatline = drawnChatLines.get(i);
-                
-                if (chatline != null) {
-                    int lineAge = updateCounter - chatline.getUpdatedCounter();
-                    
-                    if (lineAge < 200 || chat.getChatOpen()) {
-                        double opacity = chat.getChatOpen() ? 1.0D : (double)(1.0F - (float)lineAge / 200.0F);
-                        opacity = opacity * opacity;
-                        int alpha = (int)(255.0D * opacity);
-                        
-                        if (alpha > 3 && chat.getChatOpen()) {
-                            int yPos = 9 - i * 9;
-                            int xPos = 2;
-                            
-                            String icon = "§a[§f+§a]";
-                            
-                            Gui.drawRect(xPos, yPos - 1, xPos + fontRenderer.getStringWidth(icon) + 2, yPos + 8, 
-                                (alpha / 2 << 24) | 0x000000);
-                            
-                            fontRenderer.drawStringWithShadow(icon, xPos + 1, yPos, 0xFFFFFF | (alpha << 24));
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Иконки копирования теперь рисуются в CustomChatRenderer
+        // Этот код больше не используется
     }
     
     @SubscribeEvent

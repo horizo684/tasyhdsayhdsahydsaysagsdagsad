@@ -37,6 +37,7 @@ public class AmethystClient {
         MinecraftForge.EVENT_BUS.register(new GuiModifier());
         MinecraftForge.EVENT_BUS.register(new CopyChatClickHandler());
         MinecraftForge.EVENT_BUS.register(new ScreenshotClickHandler());
+        MinecraftForge.EVENT_BUS.register(new GuiNewChatHook()); // ДОБАВЛЕНО - для обработки кликов по чату
 
         // NEW: Scoreboard + Chat renderers
         customChatRenderer = new CustomChatRenderer();

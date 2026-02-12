@@ -17,17 +17,7 @@ public class CopyChat extends Module {
         super("CopyChat", "Click [+] next to chat messages to copy", 0, Category.MISC);
     }
 
-    @SubscribeEvent
-    public void onChatReceived(ClientChatReceivedEvent event) {
-        if (!isEnabled()) {
-            return;
-        }
-
-        // Добавляем [+] к каждому сообщению
-        String original = event.message.getFormattedText();
-        ChatComponentText newMessage = new ChatComponentText(original + " §7[§a+§7]");
-        event.message = newMessage;
-    }
+    // Удалили добавление [+] - теперь иконка рисуется только в CustomChatRenderer
 
     public void copyToClipboard(String message) {
         try {
