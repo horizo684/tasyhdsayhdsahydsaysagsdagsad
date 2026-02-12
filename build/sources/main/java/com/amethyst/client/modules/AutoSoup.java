@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -21,7 +22,7 @@ public class AutoSoup extends Module {
     private SoupState currentState = SoupState.IDLE;
     
     public AutoSoup() {
-        super("AutoSoup", "Auto eat soup at 10 HP (5 hearts) or below");
+        super("AutoSoup", "Auto eat soup at 10 HP (5 hearts) or below", 0, Category.COMBAT);
     }
     
     public void onTick() {

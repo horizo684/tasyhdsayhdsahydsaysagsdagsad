@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
@@ -42,7 +43,7 @@ public class CPSCounter extends Module {
     private int styleIndex;
     
     public CPSCounter() {
-        super("CPS Counter", "Shows your clicks per second");
+        super("CPS Counter", "Shows your clicks per second", 0, Category.RENDER);
         this.setEnabled(true);
         this.currentStyle = CPSStyle.RAINBOW;
         this.styleIndex = 1;

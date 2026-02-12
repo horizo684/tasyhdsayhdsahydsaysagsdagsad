@@ -1,11 +1,12 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 
 public class HitDelayFix extends Module {
     
     public HitDelayFix() {
-        super("HitDelayFix", "Removes attack delay");
+        super("HitDelayFix", "Removes attack delay", 0, Category.COMBAT);
     }
 
     @Override

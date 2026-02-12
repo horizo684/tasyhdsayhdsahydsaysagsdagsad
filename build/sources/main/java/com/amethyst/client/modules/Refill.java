@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.init.Items;
@@ -24,7 +25,7 @@ public class Refill extends Module {
     private static final int MAX_SWAP_ATTEMPTS = 27; // Макс попыток (инвентарь = 27 слотов)
     
     public Refill() {
-        super("Refill", "Press Z to refill soups from inventory to hotbar");
+        super("Refill", "Press Z to refill soups from inventory to hotbar", 0, Category.COMBAT);
         this.setKeyCode(Keyboard.KEY_Z);
     }
     

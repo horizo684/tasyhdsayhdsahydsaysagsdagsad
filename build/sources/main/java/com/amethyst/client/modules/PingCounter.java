@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetworkPlayerInfo;
 
@@ -8,7 +9,7 @@ public class PingCounter extends Module {
     private Minecraft mc = Minecraft.getMinecraft();
     
     public PingCounter() {
-        super("Ping Counter", "Shows your current ping");
+        super("Ping Counter", "Shows your current ping", 0, Category.RENDER);
         this.setEnabled(true);
     }
     

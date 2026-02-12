@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.BlockPos;
@@ -11,7 +12,7 @@ public class NoJumpDelay extends Module {
     private Minecraft mc = Minecraft.getMinecraft();
     
     public NoJumpDelay() {
-        super("NoJumpDelay", "Smart jump - only spam in 2-block spaces");
+        super("NoJumpDelay", "Smart jump - only spam in 2-block spaces", 0, Category.MISC);
     }
     
     @SubscribeEvent

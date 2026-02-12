@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
@@ -17,7 +18,7 @@ public class Saturation extends Module {
     private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
 
     public Saturation() {
-        super("Saturation", "Centers health/armor bars and hides hunger");
+        super("Saturation", "Centers health/armor bars and hides hunger", 0, Category.RENDER);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)

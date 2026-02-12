@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import java.awt.Color;
 
 public class Nametag extends Module {
@@ -17,7 +18,7 @@ public class Nametag extends Module {
     private int    customColor  = 0xFFFFFFFF;
 
     public Nametag() {
-        super("Nametag", "Shows animated tag above your name in F5");
+        super("Nametag", "Shows animated tag above your name in F5", 0, Category.MISC);
     }
 
     /**

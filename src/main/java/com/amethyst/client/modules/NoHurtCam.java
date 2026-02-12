@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.EntityViewRenderEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -11,7 +12,7 @@ public class NoHurtCam extends Module {
     private Minecraft mc = Minecraft.getMinecraft();
 
     public NoHurtCam() {
-        super("NoHurtCam", "Removes camera shake when taking damage");
+        super("NoHurtCam", "Removes camera shake when taking damage", 0, Category.MISC);
     }
 
     /**

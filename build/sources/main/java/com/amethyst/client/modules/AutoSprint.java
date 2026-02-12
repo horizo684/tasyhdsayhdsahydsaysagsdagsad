@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -10,7 +11,7 @@ public class AutoSprint extends Module {
     private Minecraft mc = Minecraft.getMinecraft();
     
     public AutoSprint() {
-        super("AutoSprint", "Auto sprint when moving forward");
+        super("AutoSprint", "Auto sprint when moving forward", 0, Category.MISC);
     }
     
     @SubscribeEvent

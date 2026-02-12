@@ -2,6 +2,7 @@ package com.amethyst.client.modules;
 
 import com.amethyst.client.AmethystClient;
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MovingObjectPosition;
@@ -14,7 +15,7 @@ public class Friends extends Module {
     private boolean middleClickPressed = false;
     
     public Friends() {
-        super("Friends", "Shows [FRIEND] tag above friends");
+        super("Friends", "Shows [FRIEND] tag above friends", 0, Category.MISC);
         this.setEnabled(true);
     }
     

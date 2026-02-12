@@ -1,6 +1,7 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
+import com.amethyst.client.Module.Category;
 import java.awt.Color;
 
 public class ColorChanger extends Module {
@@ -16,7 +17,7 @@ public class ColorChanger extends Module {
     private float rainbowSpeed = 5.0f;
 
     public ColorChanger() {
-        super("ColorChanger", "Animated color presets");
+        super("ColorChanger", "Animated color presets", 0, Category.MISC);
         this.setEnabled(true);
     }
 

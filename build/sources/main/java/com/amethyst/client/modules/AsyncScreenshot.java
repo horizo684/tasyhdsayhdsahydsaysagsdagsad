@@ -1,5 +1,6 @@
 package com.amethyst.client.modules;
 
+import com.amethyst.client.Module.Category;
 import com.amethyst.client.Module;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.shader.Framebuffer;
@@ -41,7 +42,7 @@ public class AsyncScreenshot extends Module {
     public static final String MARKER_EXPORT = "§[SC:EXPORT]";
 
     public AsyncScreenshot() {
-        super("AsyncScreenshot", "F2 screenshot with OPEN / COPY / EXPORT");
+        super("AsyncScreenshot", "F2 screenshot with OPEN / COPY / EXPORT", 0, Category.MISC);
         this.setEnabled(true);
     }
 

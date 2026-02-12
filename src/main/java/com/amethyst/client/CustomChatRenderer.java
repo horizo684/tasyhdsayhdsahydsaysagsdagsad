@@ -1,100 +1,160 @@
 package com.amethyst.client;
 
 import com.amethyst.client.modules.CustomChat;
-import com.amethyst.client.Module;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ChatLine;
+import net.minecraft.client.gui.GuiNewChat;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.IChatComponent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.lang.reflect.Field;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CustomChatRenderer {
 
-    private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm");
+    private final Minecraft mc = Minecraft.getMinecraft();
+    private Field drawnChatLinesField;
+    private Map<String, Long> messageAppearTimes = new LinkedHashMap<>();
+    private static final long FADE_IN_DURATION = 200;
 
-    public static void renderCustomChat(ScaledResolution sr, int updateCounter) {
-        Minecraft mc = Minecraft.getMinecraft();
-        
-        if (mc.gameSettings.chatVisibility == net.minecraft.entity.player.EntityPlayer.EnumChatVisibility.HIDDEN) {
-            return;
-        }
-
-        FontRenderer fontRenderer = mc.fontRendererObj;
-        int screenWidth = sr.getScaledWidth();
-        int screenHeight = sr.getScaledHeight();
-
-        List<String> chatLines = mc.ingameGUI.getChatGUI().getSentMessages();
-        
-        if (chatLines.isEmpty()) {
-            return;
-        }
-
-        Module moduleObj = AmethystClient.moduleManager.getModuleByName("CustomChat");
-        if (moduleObj == null || !(moduleObj instanceof CustomChat)) return;
-        CustomChat mod = (CustomChat) moduleObj;
-        if (!mod.isEnabled()) return;
-
-        int chatX = 2;
-        int chatY = screenHeight - 40;
-
-        int chatWidth = 320;
-        int chatHeight = 180;
-
-        float scale = mod.getScale();
-        int maxLines = mod.getMaxMessages();
-
-        int displayLines = Math.min(chatLines.size(), maxLines);
-
-        org.lwjgl.opengl.GL11.glPushMatrix();
-        org.lwjgl.opengl.GL11.glScalef(scale, scale, 1.0f);
-
-        int scaledX = (int) (chatX / scale);
-        int scaledY = (int) ((chatY - displayLines * 9) / scale);
-
-        int lineY = scaledY + displayLines * 9;
-
-        for (int i = 0; i < displayLines; i++) {
-            String message = chatLines.get(i);
-            lineY -= 9;
-
-            int textAlpha = 255;
-            if (mod.isFadeMessages()) {
-                float alpha = 0.5f + 0.5f * i / (float) displayLines;
-                textAlpha = (int) (alpha * 255);
+    public CustomChatRenderer() {
+        try {
+            drawnChatLinesField = GuiNewChat.class.getDeclaredField("drawnChatLines");
+            drawnChatLinesField.setAccessible(true);
+        } catch (Exception e) {
+            try {
+                drawnChatLinesField = GuiNewChat.class.getDeclaredField("field_146252_h");
+                drawnChatLinesField.setAccessible(true);
+            } catch (Exception ex) {
+                System.err.println("[CustomChat] Failed to access drawnChatLines field!");
+                ex.printStackTrace();
             }
+        }
+    }
 
-            if (mod.isShowBackground()) {
-                int bgAlpha = (int) (mod.getBgAlpha() * textAlpha);
-                int bgColor = (bgAlpha << 24) | 0x000000;
+    // ── CANCEL vanilla chat ───────────────────────────────────────────────────
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onRenderChatPre(RenderGameOverlayEvent.Pre event) {
+        if (event.type != RenderGameOverlayEvent.ElementType.CHAT) return;
+
+        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+        if (mod != null && mod.isEnabled()) {
+            event.setCanceled(true);
+        }
+    }
+
+    // ── Draw custom chat ──────────────────────────────────────────────────────
+    @SubscribeEvent(priority = EventPriority.NORMAL)
+    public void onRenderChatPost(RenderGameOverlayEvent.Post event) {
+        if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
+
+        CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+        if (mod == null || !mod.isEnabled() || drawnChatLinesField == null) return;
+
+        GuiNewChat chat = mc.ingameGUI.getChatGUI();
+        if (chat == null) return;
+
+        try {
+            @SuppressWarnings("unchecked")
+            List<ChatLine> drawnLines = (List<ChatLine>) drawnChatLinesField.get(chat);
+            if (drawnLines == null || drawnLines.isEmpty()) return;
+
+            ScaledResolution sr = new ScaledResolution(mc);
+            int x = HUDConfig.getChatX();
+            int y = HUDConfig.getChatY();
+            if (y == -1) y = sr.getScaledHeight() - 60;
+
+            // ВАЖНО: chat.getChatOpen() показывает открыт ли чат для ввода
+            boolean chatOpen = chat.getChatOpen();
+            int updateCounter = mc.ingameGUI.getUpdateCounter();
+            int maxMessages = mod.getMaxMessages();
+            float chatWidth = mod.getChatWidth();
+            float chatScale = mod.getChatScale();
+            float chatOpacity = mod.getChatOpacity();
+
+            // Ширина чата в пикселях (как в ванилле: 320 * width_multiplier)
+            int chatWidthPx = (int)(320 * chatWidth);
+
+            GlStateManager.pushMatrix();
+            GlStateManager.scale(chatScale, chatScale, 1f);
+
+            int sx = (int)(x / chatScale);
+            int sy = (int)(y / chatScale);
+
+            int lineY = sy;
+            int linesDrawn = 0;
+
+            for (int i = 0; i < drawnLines.size() && linesDrawn < maxMessages; i++) {
+                ChatLine line = drawnLines.get(i);
+                if (line == null) continue;
+
+                int lineAge = updateCounter - line.getUpdatedCounter();
+
+                // ФИКС: Когда чат открыт — показываем ВСЕ сообщения с полной непрозрачностью
+                double opacity;
+                if (chatOpen) {
+                    opacity = 1.0;
+                } else {
+                    // Когда чат закрыт — применяем fade-out после 200 тиков
+                    if (lineAge >= 200) continue;
+                    opacity = 1.0 - (double) lineAge / 200.0;
+                }
+
+                opacity = opacity * opacity; // smooth curve
+                opacity *= chatOpacity; // user setting
+
+                // Fade-in анимация (если включено)
+                if (mod.isFadeMessages() && !chatOpen) {
+                    String key = line.getChatComponent().getFormattedText();
+                    if (!messageAppearTimes.containsKey(key)) {
+                        messageAppearTimes.put(key, System.currentTimeMillis());
+                    }
+                    long elapsed = System.currentTimeMillis() - messageAppearTimes.get(key);
+                    if (elapsed < FADE_IN_DURATION) {
+                        float t = (float) elapsed / FADE_IN_DURATION;
+                        float fadeIn = t * t * (3f - 2f * t); // smoothstep
+                        opacity *= fadeIn;
+                    }
+                }
+
+                int alpha = (int) (opacity * 255);
+                if (alpha < 3) continue;
+
+                // Background
+                if (mod.isShowBackground()) {
+                    int bgAlpha = (int) (mod.getBgAlpha() * alpha);
+                    drawRect(sx, lineY, sx + chatWidthPx, lineY + 9, (bgAlpha << 24));
+                }
+
+                // Text
+                String text = line.getChatComponent().getFormattedText();
                 
-                int messageWidth = fontRenderer.getStringWidth(message);
-                net.minecraft.client.gui.Gui.drawRect(
-                    scaledX - 2,
-                    lineY - 1,
-                    scaledX + messageWidth + 2,
-                    lineY + 9,
-                    bgColor
-                );
+                // Обрезаем текст если он шире чем chatWidth
+                if (mc.fontRendererObj.getStringWidth(text) > chatWidthPx - 4) {
+                    text = mc.fontRendererObj.trimStringToWidth(text, chatWidthPx - 4) + "...";
+                }
+
+                mc.fontRendererObj.drawStringWithShadow(text, sx + 2, lineY + 1, 
+                    (alpha << 24) | (mod.getTextColor() & 0xFFFFFF));
+
+                lineY += 9;
+                linesDrawn++;
             }
 
-            String timestamp = "";
-            if (mod.isShowTimestamps()) {
-                timestamp = "§7[" + TIME_FORMAT.format(new Date()) + "] §r";
-            }
+            GlStateManager.popMatrix();
 
-            String fullMessage = timestamp + message;
-
-            fontRenderer.drawStringWithShadow(
-                fullMessage,
-                scaledX,
-                lineY,
-                (textAlpha << 24) | (mod.getTextColor() & 0x00FFFFFF)
-            );
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
 
-        org.lwjgl.opengl.GL11.glPopMatrix();
+    private void drawRect(int left, int top, int right, int bottom, int color) {
+        net.minecraft.client.gui.Gui.drawRect(left, top, right, bottom, color);
     }
 }
