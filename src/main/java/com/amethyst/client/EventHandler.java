@@ -2,6 +2,8 @@ package com.amethyst.client;
 
 import com.amethyst.client.modules.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -56,6 +58,18 @@ public class EventHandler {
                     mc.gameSettings.gammaSetting = 1.0F;
                 }
             }
+        }
+        
+        // Clean up old damage animation entries every second
+        if (mc.theWorld.getTotalWorldTime() % 20 == 0) {
+            DamageAnimationHandler.cleanup();
+        }
+    }
+    
+    @SubscribeEvent
+    public void onEntityHurt(LivingHurtEvent event) {
+        if (event.entity instanceof EntityLivingBase) {
+            DamageAnimationHandler.onEntityHurt((EntityLivingBase) event.entity);
         }
     }
 }

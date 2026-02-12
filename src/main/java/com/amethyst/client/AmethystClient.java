@@ -90,6 +90,9 @@ public class AmethystClient {
         
         // Animation handler for 1.7 animations
         MinecraftForge.EVENT_BUS.register(new AnimationHandler());
+        
+        // Damage animation handler for red armor effect
+        MinecraftForge.EVENT_BUS.register(new DamageAnimationHandler());
 
         // Module-specific event listeners
         registerModuleListener("CPS Counter");

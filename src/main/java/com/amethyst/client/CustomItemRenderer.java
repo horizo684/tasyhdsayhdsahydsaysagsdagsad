@@ -95,46 +95,30 @@ public class CustomItemRenderer extends ItemRenderer {
         
         ItemStack stack = player.getHeldItem();
         
-        // Применяем кастомные трансформации только если нужно
+        // Проверяем нужны ли кастомные анимации
         boolean needsCustom = false;
         
         if (stack != null) {
             Item item = stack.getItem();
             
-            // Проверяем только активные анимации (не просто наличие флага)
-            boolean hasActiveAnimation = false;
-            if (anim.isOldBlockhit() && player.isBlocking()) hasActiveAnimation = true;
-            if (anim.isOldSword() && item instanceof ItemSword && player.isSwingInProgress) hasActiveAnimation = true;
-            if (anim.isOldBow() && item instanceof ItemBow && player.getItemInUse() != null) hasActiveAnimation = true;
-            if (anim.isOldRod() && item instanceof ItemFishingRod) hasActiveAnimation = true;
-            if (anim.isOldEating() && item instanceof ItemFood && player.getItemInUse() != null) hasActiveAnimation = true;
-            
-            // Проверяем кастомную позицию/масштаб
-            boolean hasCustomTransform = anim.getItemPosX() != 0.0f ||
-                                        anim.getItemPosY() != 0.0f ||
-                                        anim.getItemPosZ() != 0.0f ||
-                                        anim.getItemScale() != 0.4f;
-            
-            needsCustom = hasActiveAnimation || hasCustomTransform;
-            
-            // ОТЛАДКА - выводим раз в секунду
-            if (mc.theWorld.getTotalWorldTime() % 20 == 0) {
-                System.out.println("[CustomItemRenderer] Scale=" + anim.getItemScale() + 
-                                 " PosX=" + anim.getItemPosX() + 
-                                 " Custom=" + needsCustom +
-                                 " ActiveAnim=" + hasActiveAnimation +
-                                 " CustomTransform=" + hasCustomTransform);
-            }
+            // Проверяем активные 1.7 анимации
+            if (anim.isOldBlockhit() && player.isBlocking()) needsCustom = true;
+            if (anim.isOldSword() && item instanceof ItemSword && player.isSwingInProgress) needsCustom = true;
+            if (anim.isOldBow() && item instanceof ItemBow && player.getItemInUse() != null) needsCustom = true;
+            if (anim.isOldRod() && item instanceof ItemFishingRod) needsCustom = true;
+            if (anim.isOldEating() && item instanceof ItemFood && player.getItemInUse() != null) needsCustom = true;
         } else {
             needsCustom = anim.isPunching() && player.isSwingInProgress;
         }
         
+        // Если кастомные анимации не нужны - используем vanilla
         if (!needsCustom) {
             super.renderItemInFirstPerson(partialTicks);
             return;
         }
         
-        // Применяем кастомные трансформации
+        // === КАСТОМНЫЙ РЕНДЕРИНГ С 1.7 АНИМАЦИЯМИ ===
+        
         float equippedProgress = 0;
         float prevEquippedProgress = 0;
         
@@ -142,54 +126,43 @@ public class CustomItemRenderer extends ItemRenderer {
             equippedProgress = equippedProgressField.getFloat(this);
             prevEquippedProgress = prevEquippedProgressField.getFloat(this);
         } catch (Exception e) {
-            // Ignore
+            // Fallback to vanilla if reflection fails
+            super.renderItemInFirstPerson(partialTicks);
+            return;
         }
         
         float interpEquipped = prevEquippedProgress + (equippedProgress - prevEquippedProgress) * partialTicks;
         
         GlStateManager.pushMatrix();
         
-        // === БАЗОВЫЕ ТРАНСФОРМАЦИИ ===
-        applyBaseTransforms(interpEquipped, anim);
-        
-        // === СПЕЦИФИЧНЫЕ АНИМАЦИИ ===
-        applySpecificAnimations(stack, player, partialTicks, anim);
-        
-        // Рендерим сам предмет
-        if (stack != null) {
-            renderItemStack(player, stack, ItemCameraTransforms.TransformType.FIRST_PERSON);
-        }
-        
-        GlStateManager.popMatrix();
-    }
-    
-    private void applyBaseTransforms(float equippedProgress, Animations anim) {
-        // Получаем кастомные значения позиции
+        // === БАЗОВЫЕ VANILLA ТРАНСФОРМАЦИИ (как в оригинале) ===
+        // Позиция из настроек (1.7 = 0.56, -0.52, -0.72 / 1.8 = vanilla)
         float posX = anim.getItemPosX();
         float posY = anim.getItemPosY();
         float posZ = anim.getItemPosZ();
         
-        // Если значения 0, используем дефолтные vanilla позиции
-        if (posX == 0.0f && posY == 0.0f && posZ == 0.0f) {
-            posX = 0.56f;
-            posY = -0.52f;
-            posZ = -0.72f;
-        }
-        
-        // Применяем позицию
         GlStateManager.translate(posX, posY, posZ);
-        GlStateManager.translate(0.0F, equippedProgress * -0.6F, 0.0F);
+        GlStateManager.translate(0.0F, interpEquipped * -0.6F, 0.0F);
         GlStateManager.rotate(45.0F, 0.0F, 1.0F, 0.0F);
         
-        // ВАЖНО: Сначала применяем базовый vanilla масштаб
-        float vanillaBaseScale = 0.4F;
-        GlStateManager.scale(vanillaBaseScale, vanillaBaseScale, vanillaBaseScale);
-        
-        // Потом применяем кастомный масштаб (множитель)
-        // Если itemScale = 0.4, то scale = 1.0 (без изменений)
-        // Если itemScale = 0.8, то scale = 2.0 (в 2 раза больше)
-        float scale = anim.getItemScale() / 0.4f;
+        // ВСЕГДА vanilla масштаб 0.4
+        float scale = 0.4F;
         GlStateManager.scale(scale, scale, scale);
+        
+        // === СПЕЦИФИЧНЫЕ 1.7 АНИМАЦИИ ===
+        applySpecificAnimations(stack, player, partialTicks, anim);
+        
+        // Рендерим предмет БЕЗ дополнительных трансформаций
+        if (stack != null) {
+            if (player.isSneaking()) {
+                GlStateManager.translate(0.0F, 0.2F, 0.0F);
+            }
+            
+            // Используем renderItem напрямую, который НЕ добавляет свои трансформации
+            mc.getRenderItem().renderItem(stack, ItemCameraTransforms.TransformType.FIRST_PERSON);
+        }
+        
+        GlStateManager.popMatrix();
     }
     
     private void applySpecificAnimations(ItemStack stack, EntityPlayerSP player, float partialTicks, Animations anim) {
@@ -257,20 +230,6 @@ public class CustomItemRenderer extends ItemRenderer {
             
             GlStateManager.translate(0.0F, eatProgress * -0.6F, 0.0F);
             GlStateManager.rotate(eatProgress * 90.0F, 0.0F, 1.0F, 0.0F);
-        }
-    }
-    
-    private void renderItemStack(EntityLivingBase entity, ItemStack stack, ItemCameraTransforms.TransformType transform) {
-        if (stack != null) {
-            GlStateManager.pushMatrix();
-            
-            if (entity.isSneaking()) {
-                GlStateManager.translate(0.0F, 0.2F, 0.0F);
-            }
-            
-            mc.getItemRenderer().renderItem(entity, stack, transform);
-            
-            GlStateManager.popMatrix();
         }
     }
 }
