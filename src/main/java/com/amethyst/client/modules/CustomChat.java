@@ -1,43 +1,79 @@
-package com.amethyst.client.modules;
+package com.amethyst.client;
 
-import com.amethyst.client.Module;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ChatLine;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiNewChat;
+import net.minecraft.util.IChatComponent;
+import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-public class CustomChat extends Module {
+import java.lang.reflect.Field;
+import java.util.List;
 
-    private boolean showBackground = true;
-    private float   bgAlpha       = 0.35f;
-    private float   scale         = 1.0f;
-    private boolean fadeMessages  = true;
-    private int     maxMessages   = 10;
-    private int     textColor     = 0xFFFFFFFF;
-    private boolean showTimestamps = false;
-    private float   chatWidth     = 1.0f;  // 0.5 - 2.0 как в настройках MC
-    private float   chatOpacity   = 1.0f;  // 0.0 - 1.0 прозрачность текста
-    private float   chatScale     = 1.0f;  // 0.5 - 2.0 масштаб чата
-
-    public CustomChat() {
-        super("CustomChat", "Movable chat with smooth fade-in animation", 0, Category.RENDER);
+public class GuiNewChatHook {
+    
+    private Field drawnChatLinesField = null;
+    
+    public GuiNewChatHook() {
+        try {
+            drawnChatLinesField = GuiNewChat.class.getDeclaredField("drawnChatLines");
+            drawnChatLinesField.setAccessible(true);
+        } catch (Exception e) {
+            try {
+                drawnChatLinesField = GuiNewChat.class.getDeclaredField("field_146252_h");
+                drawnChatLinesField.setAccessible(true);
+            } catch (Exception ex) {
+                System.err.println("Could not access drawnChatLines field!");
+                ex.printStackTrace();
+            }
+        }
     }
-
-    public boolean isShowBackground() { return showBackground; }
-    public float   getBgAlpha()       { return bgAlpha; }
-    public float   getScale()         { return scale; }
-    public boolean isFadeMessages()   { return fadeMessages; }
-    public int     getMaxMessages()   { return maxMessages; }
-    public int     getTextColor()     { return textColor; }
-    public boolean isShowTimestamps() { return showTimestamps; }
-    public float   getChatWidth()     { return chatWidth; }
-    public float   getChatOpacity()   { return chatOpacity; }
-    public float   getChatScale()     { return chatScale; }
-
-    public void setShowBackground(boolean v) { showBackground = v; }
-    public void setBgAlpha(float v)          { bgAlpha = Math.max(0f, Math.min(1f, v)); }
-    public void setScale(float v)            { scale = Math.max(0.5f, Math.min(2.0f, v)); }
-    public void setFadeMessages(boolean v)   { fadeMessages = v; }
-    public void setMaxMessages(int v)        { maxMessages = Math.max(3, Math.min(20, v)); }
-    public void setTextColor(int v)          { textColor = v | 0xFF000000; }
-    public void setShowTimestamps(boolean v) { showTimestamps = v; }
-    public void setChatWidth(float v)        { chatWidth = Math.max(0.5f, Math.min(2.0f, v)); }
-    public void setChatOpacity(float v)      { chatOpacity = Math.max(0f, Math.min(1f, v)); }
-    public void setChatScale(float v)        { chatScale = Math.max(0.5f, Math.min(2.0f, v)); }
+    
+    @SubscribeEvent
+    public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
+        // Иконки копирования теперь рисуются в CustomChatRenderer
+        // Этот код больше не используется
+    }
+    
+    @SubscribeEvent
+    public void onMouseClick(GuiScreenEvent.MouseInputEvent.Pre event) {
+        Minecraft mc = Minecraft.getMinecraft();
+        
+        if (org.lwjgl.input.Mouse.getEventButtonState() && org.lwjgl.input.Mouse.getEventButton() == 0) {
+            try {
+                int mouseX = org.lwjgl.input.Mouse.getEventX() * event.gui.width / mc.displayWidth;
+                int mouseY = event.gui.height - org.lwjgl.input.Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
+                
+                // Сначала проверяем включен ли CustomChat
+                com.amethyst.client.modules.CustomChat customChat = 
+                    (com.amethyst.client.modules.CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
+                
+                if (customChat != null && customChat.isEnabled()) {
+                    // Используем обработчик кликов из CustomChatRenderer
+                    if (AmethystClient.customChatRenderer != null) {
+                        AmethystClient.customChatRenderer.handleChatClick(mouseX, mouseY);
+                    }
+                } else {
+                    // Ванильный чат - используем старый код
+                    FontRenderer fontRenderer = mc.fontRendererObj;
+                    int iconWidth = fontRenderer.getStringWidth("§a[§f+§a]") + 3;
+                    
+                    if (mouseX >= 2 && mouseX <= 2 + iconWidth) {
+                        IChatComponent chatComponent = mc.ingameGUI.getChatGUI().getChatComponent(mouseX, mouseY);
+                        
+                        if (chatComponent != null) {
+                            String fullMessage = chatComponent.getFormattedText();
+                            fullMessage = fullMessage.replaceAll("§[0-9a-fk-or]", "");
+                            ChatCopyButton.copyToClipboard(fullMessage);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

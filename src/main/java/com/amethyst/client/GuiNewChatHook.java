@@ -47,17 +47,17 @@ public class GuiNewChatHook {
                 int mouseX = org.lwjgl.input.Mouse.getEventX() * event.gui.width / mc.displayWidth;
                 int mouseY = event.gui.height - org.lwjgl.input.Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
                 
-                // Спочатку перевіряємо чи CustomChat увімкнений
+                // Сначала проверяем включен ли CustomChat
                 com.amethyst.client.modules.CustomChat customChat = 
                     (com.amethyst.client.modules.CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
                 
                 if (customChat != null && customChat.isEnabled()) {
-                    // Використовуємо обробник кліків з CustomChatRenderer
+                    // Используем обработчик кликов из CustomChatRenderer
                     if (AmethystClient.customChatRenderer != null) {
                         AmethystClient.customChatRenderer.handleChatClick(mouseX, mouseY);
                     }
                 } else {
-                    // Ванільний чат - використовуємо старий код
+                    // Ванильный чат - используем старый код
                     FontRenderer fontRenderer = mc.fontRendererObj;
                     int iconWidth = fontRenderer.getStringWidth("§a[§f+§a]") + 3;
                     

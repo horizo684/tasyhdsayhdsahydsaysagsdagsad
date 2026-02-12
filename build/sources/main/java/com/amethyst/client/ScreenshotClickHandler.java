@@ -12,39 +12,45 @@ public class ScreenshotClickHandler {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onGuiMouseClick(GuiScreenEvent.MouseInputEvent.Pre event) {
-        // Працюємо тільки коли відкритий чат
+        // Работаем только когда открыт чат
         if (!(event.gui instanceof GuiChat)) return;
         
         Minecraft mc = Minecraft.getMinecraft();
         
-        // Перевіряємо чи це клік лівою кнопкою
+        // Проверяем это ли клик левой кнопкой
         if (!org.lwjgl.input.Mouse.getEventButtonState()) return;
         if (org.lwjgl.input.Mouse.getEventButton() != 0) return;
         
         AsyncScreenshot mod = (AsyncScreenshot) AmethystClient.moduleManager.getModuleByName("AsyncScreenshot");
         if (mod == null || !mod.isEnabled()) return;
         
-        // Отримуємо позицію миші
+        // Получаем позицию мыши
         int mouseX = org.lwjgl.input.Mouse.getEventX() * event.gui.width / mc.displayWidth;
         int mouseY = event.gui.height - org.lwjgl.input.Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
         
-        // Отримуємо компонент чату під курсором
+        // Получаем компонент чата под курсором
         IChatComponent component = mc.ingameGUI.getChatGUI().getChatComponent(mouseX, mouseY);
         if (component == null) return;
         
-        // Перевіряємо чи є ClickEvent
-        if (component.getChatStyle() == null || component.getChatStyle().getChatClickEvent() == null) return;
+        // Получаем полный текст компонента (включая невидимые маркеры)
+        String fullText = component.getUnformattedText();
+        String formattedText = component.getFormattedText();
         
-        String clickValue = component.getChatStyle().getChatClickEvent().getValue();
+        System.out.println("[AsyncScreenshot] Click on component:");
+        System.out.println("  Unformatted: " + fullText);
+        System.out.println("  Formatted: " + formattedText);
         
-        // Перехоплюємо наші команди
-        if (clickValue.equals("/screenshot_open")) {
+        // Проверяем наличие маркеров
+        if (formattedText.contains("[SC_OPEN]") || fullText.contains("[SC_OPEN]")) {
+            System.out.println("[AsyncScreenshot] OPEN button clicked");
             mod.openScreenshot();
             event.setCanceled(true);
-        } else if (clickValue.equals("/screenshot_copy")) {
+        } else if (formattedText.contains("[SC_COPY]") || fullText.contains("[SC_COPY]")) {
+            System.out.println("[AsyncScreenshot] COPY button clicked");
             mod.copyScreenshot();
             event.setCanceled(true);
-        } else if (clickValue.equals("/screenshot_export")) {
+        } else if (formattedText.contains("[SC_EXPORT]") || fullText.contains("[SC_EXPORT]")) {
+            System.out.println("[AsyncScreenshot] EXPORT button clicked");
             mod.exportScreenshot();
             event.setCanceled(true);
         }

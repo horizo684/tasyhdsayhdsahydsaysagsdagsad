@@ -124,48 +124,42 @@ public class AsyncScreenshot extends Module {
     // ─── Сообщение в чат с кнопками ──────────────────────────────────────────
 
     private void sendSuccessMessage(File file) {
+        System.out.println("[AsyncScreenshot] Sending success message for: " + file.getName());
+        
         // Основной текст
         ChatComponentText line = new ChatComponentText(
             "§8[§dAmethyst§8] §7Screenshot saved! "
         );
 
-        // Кнопка [OPEN]
+        // Кнопка [OPEN] - используем уникальный маркер вместо команды
         ChatComponentText openBtn = new ChatComponentText("§8[§a§lOPEN§8]");
         openBtn.getChatStyle()
-            .setChatClickEvent(new ClickEvent(
-                ClickEvent.Action.RUN_COMMAND,
-                "/screenshot_open"
-            ))
             .setChatHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
-                new ChatComponentText("§aВідкрити скріншот")
+                new ChatComponentText("§aОткрыть скриншот\n§7Клик для открытия")
             ));
+        // Добавляем невидимый маркер для идентификации
+        openBtn.appendText("§r§0§k§l[SC_OPEN]§r");
 
         // Кнопка [COPY]
         ChatComponentText sep1 = new ChatComponentText(" §8│ ");
         ChatComponentText copyBtn = new ChatComponentText("§8[§b§lCOPY§8]");
         copyBtn.getChatStyle()
-            .setChatClickEvent(new ClickEvent(
-                ClickEvent.Action.RUN_COMMAND,
-                "/screenshot_copy"
-            ))
             .setChatHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
-                new ChatComponentText("§bСкопіювати зображення")
+                new ChatComponentText("§bСкопировать изображение\n§7Клик для копирования")
             ));
+        copyBtn.appendText("§r§0§k§l[SC_COPY]§r");
 
         // Кнопка [EXPORT]
         ChatComponentText sep2 = new ChatComponentText(" §8│ ");
         ChatComponentText exportBtn = new ChatComponentText("§8[§e§lEXPORT§8]");
         exportBtn.getChatStyle()
-            .setChatClickEvent(new ClickEvent(
-                ClickEvent.Action.RUN_COMMAND,
-                "/screenshot_export"
-            ))
             .setChatHoverEvent(new HoverEvent(
                 HoverEvent.Action.SHOW_TEXT,
-                new ChatComponentText("§eЗберегти як…")
+                new ChatComponentText("§eСохранить как…\n§7Клик для экспорта")
             ));
+        exportBtn.appendText("§r§0§k§l[SC_EXPORT]§r");
 
         // Имя файла серым
         ChatComponentText fileName = new ChatComponentText(
@@ -181,6 +175,9 @@ public class AsyncScreenshot extends Module {
 
         if (mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(line);
+            System.out.println("[AsyncScreenshot] Message sent to chat");
+        } else {
+            System.out.println("[AsyncScreenshot] WARNING: mc.thePlayer is null, message not sent");
         }
     }
 
@@ -188,17 +185,26 @@ public class AsyncScreenshot extends Module {
 
     /** Открывает последний скрин в системном просмотрщике */
     public void openScreenshot() {
+        System.out.println("[AsyncScreenshot] openScreenshot() called");
         File f = lastScreenshot;
         if (f == null || !f.exists()) {
+            System.out.println("[AsyncScreenshot] No file available: lastScreenshot=" + lastScreenshot);
             sendChat("§c✗ §7No screenshot available.");
             return;
         }
+        System.out.println("[AsyncScreenshot] Opening file: " + f.getAbsolutePath());
         executor.submit(() -> {
             try {
+                if (!Desktop.isDesktopSupported()) {
+                    mc.addScheduledTask(() ->
+                        sendChat("§c✗ §7Desktop operations not supported on this system."));
+                    return;
+                }
                 Desktop.getDesktop().open(f);
                 mc.addScheduledTask(() ->
                     sendChat("§a✔ §7Opened: §f" + f.getName()));
             } catch (Exception e) {
+                e.printStackTrace();
                 mc.addScheduledTask(() ->
                     sendChat("§c✗ §7Cannot open file: §f" + e.getMessage()));
             }
@@ -207,14 +213,17 @@ public class AsyncScreenshot extends Module {
 
     /** Копирует изображение в буфер обмена */
     public void copyScreenshot() {
+        System.out.println("[AsyncScreenshot] copyScreenshot() called");
         BufferedImage img = lastImage;
         if (img == null) {
             // Пробуем прочитать с диска
             File f = lastScreenshot;
             if (f == null || !f.exists()) {
+                System.out.println("[AsyncScreenshot] No image or file available");
                 sendChat("§c✗ §7No screenshot available.");
                 return;
             }
+            System.out.println("[AsyncScreenshot] Loading image from file: " + f.getAbsolutePath());
             executor.submit(() -> {
                 try {
                     BufferedImage loaded = ImageIO.read(f);
@@ -222,17 +231,20 @@ public class AsyncScreenshot extends Module {
                     mc.addScheduledTask(() ->
                         sendChat("§b✔ §7Image copied to clipboard!"));
                 } catch (Exception e) {
+                    e.printStackTrace();
                     mc.addScheduledTask(() ->
                         sendChat("§c✗ §7Copy failed: §f" + e.getMessage()));
                 }
             });
         } else {
+            System.out.println("[AsyncScreenshot] Copying image from memory");
             executor.submit(() -> {
                 try {
                     copyImageToClipboard(img);
                     mc.addScheduledTask(() ->
                         sendChat("§b✔ §7Image copied to clipboard!"));
                 } catch (Exception e) {
+                    e.printStackTrace();
                     mc.addScheduledTask(() ->
                         sendChat("§c✗ §7Copy failed: §f" + e.getMessage()));
                 }
@@ -242,14 +254,17 @@ public class AsyncScreenshot extends Module {
 
     /** Открывает диалог «Сохранить как» */
     public void exportScreenshot() {
+        System.out.println("[AsyncScreenshot] exportScreenshot() called");
         File src = lastScreenshot;
         BufferedImage img = lastImage;
 
         if ((src == null || !src.exists()) && img == null) {
+            System.out.println("[AsyncScreenshot] No source file or image available");
             sendChat("§c✗ §7No screenshot available.");
             return;
         }
 
+        System.out.println("[AsyncScreenshot] Launching file chooser dialog");
         // Swing-диалог должен вызываться в EDT
         java.awt.EventQueue.invokeLater(() -> {
             try {
@@ -283,6 +298,7 @@ public class AsyncScreenshot extends Module {
                     if (!dest.getName().toLowerCase().endsWith(".png")) {
                         dest = new File(dest.getAbsolutePath() + ".png");
                     }
+                    System.out.println("[AsyncScreenshot] Exporting to: " + dest.getAbsolutePath());
                     // Берём оригинальный файл или рендерим из памяти
                     BufferedImage toSave = img;
                     if (toSave == null) toSave = ImageIO.read(src);
@@ -292,12 +308,13 @@ public class AsyncScreenshot extends Module {
                     mc.addScheduledTask(() ->
                         sendChat("§e✔ §7Exported to: §f" + finalDest.getAbsolutePath()));
                 } else {
+                    System.out.println("[AsyncScreenshot] Export cancelled by user");
                     mc.addScheduledTask(() -> sendChat("§7Export cancelled."));
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 mc.addScheduledTask(() ->
                     sendChat("§c✗ §7Export failed: §f" + e.getMessage()));
-                e.printStackTrace();
             }
         });
     }

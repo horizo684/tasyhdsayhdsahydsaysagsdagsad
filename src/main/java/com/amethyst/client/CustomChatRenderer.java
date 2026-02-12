@@ -20,12 +20,7 @@ public class CustomChatRenderer {
 
     private final Minecraft mc = Minecraft.getMinecraft();
     private Field drawnChatLinesField;
-    private Map<String, Long> messageAppearTimes = new LinkedHashMap<>();
-    private static final long FADE_IN_DURATION = 200;
-    private int scrollOffset = 0; // Кількість рядків для скролу
-    private float smoothScrollOffset = 0.0f; // Плавний скрол
-    private int targetScrollOffset = 0; // Целевая позиция скрола
-    private static final float SCROLL_SPEED = 0.15f; // Скорость плавного скрола (уменьшена для более плавного движения)
+    private int scrollOffset = 0; // Количество строк для скролла (ванильное поведение - мгновенно)
     
     // Для обробки кліків на іконку копіювання
     private static class MessageBounds {
@@ -69,28 +64,26 @@ public class CustomChatRenderer {
     private void handleChatScroll(CustomChat mod) {
         GuiNewChat chat = mc.ingameGUI.getChatGUI();
         
-        // Если чат закрыт, сбрасываем только целевые значения, но не прерываем анимацию
+        // Если чат закрыт, сбрасываем скролл мгновенно (ванильное поведение)
         if (chat == null || !chat.getChatOpen()) {
-            targetScrollOffset = 0;
-            // НЕ сбрасываем smoothScrollOffset здесь - пусть плавно анимируется к 0
+            scrollOffset = 0;
             return;
         }
         
         int scroll = org.lwjgl.input.Mouse.getEventDWheel();
         if (scroll != 0) {
-            // Очень плавный скроллинг - всего 1 строка за раз
-            float scrollAmount = (scroll > 0 ? 1.0f : -1.0f);
-            targetScrollOffset += scrollAmount;
+            // Ванильный скроллинг - мгновенный, по 1 строке
+            scrollOffset += (scroll > 0 ? 1 : -1);
             
-            // Ограничения скрола
-            if (targetScrollOffset < 0) targetScrollOffset = 0;
+            // Ограничения скролла
+            if (scrollOffset < 0) scrollOffset = 0;
             
             try {
                 if (drawnChatLinesField != null) {
                     @SuppressWarnings("unchecked")
                     List<ChatLine> drawnLines = (List<ChatLine>) drawnChatLinesField.get(chat);
                     int maxScroll = Math.max(0, drawnLines.size() - mod.getMaxMessages());
-                    if (targetScrollOffset > maxScroll) targetScrollOffset = maxScroll;
+                    if (scrollOffset > maxScroll) scrollOffset = maxScroll;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -126,24 +119,6 @@ public class CustomChatRenderer {
             float chatWidth = mod.getChatWidth();
             float chatScale = mod.getChatScale();
             float chatOpacity = mod.getChatOpacity();
-            
-            // Периодическая очистка кеша старых сообщений (каждые 100 тиков)
-            if (!chatOpen && updateCounter % 100 == 0) {
-                messageAppearTimes.entrySet().removeIf(entry -> {
-                    long age = System.currentTimeMillis() - entry.getValue();
-                    return age > 15000; // Удаляем записи старше 15 секунд
-                });
-            }
-            
-            // Постоянно обновляем плавную анимацию скроллинга
-            if (Math.abs(smoothScrollOffset - targetScrollOffset) > 0.01f) {
-                float diff = targetScrollOffset - smoothScrollOffset;
-                // Очень медленное и плавное сглаживание
-                smoothScrollOffset += diff * 0.15f;
-            } else {
-                smoothScrollOffset = targetScrollOffset;
-            }
-            scrollOffset = Math.round(smoothScrollOffset);
 
             // Ширина чата в пикселях (как в ванилле: 320 * width_multiplier)
             int chatWidthPx = (int)(320 * chatWidth);
@@ -154,24 +129,23 @@ public class CustomChatRenderer {
             int sx = (int)(x / chatScale);
             int sy = (int)(y / chatScale);
 
-            // Рахуємо скільки видимих рядків у нас є з урахуванням скролу
+            // Собираем видимые строки с учетом скролла (ванильное поведение - мгновенно)
             List<ChatLine> visibleLines = new java.util.ArrayList<>();
-            // Используем smoothScrollOffset напрямую для максимальной плавности
-            int startIndex = chatOpen ? (int)smoothScrollOffset : 0;
+            int startIndex = chatOpen ? scrollOffset : 0;
             
             // Собираем видимые сообщения
             for (int i = startIndex; i < drawnLines.size() && visibleLines.size() < maxMessages; i++) {
                 ChatLine line = drawnLines.get(i);
                 if (line == null) continue;
-                
-                // Показываем все сообщения без ограничения по времени (как в ванильном Minecraft)
-                // Затухание будет применяться ниже в логике рендеринга
                 visibleLines.add(line);
             }
 
-            // Малюємо знизу вгору
-            // У drawnLines індекс 0 = НАЙНОВІШЕ повідомлення
-            // Малюємо у ЗВОРОТНОМУ порядку щоб найновіше було ЗНИЗУ
+            // ВАЖНО: В drawnLines индекс 0 = САМОЕ НОВОЕ сообщение
+            // Мы должны рисовать снизу вверх, где НОВОЕ внизу, СТАРОЕ вверху
+            // Поэтому рисуем в ПРЯМОМ порядке (от 0 к size-1)
+            // и начинаем СНИЗУ экрана
+            
+            // Вычисляем общую высоту всех сообщений
             int totalHeight = 0;
             for (ChatLine line : visibleLines) {
                 if (line == null) continue;
@@ -181,66 +155,53 @@ public class CustomChatRenderer {
                 totalHeight += lines.size() * 9;
             }
             
-            // КРИТИЧНО: Завжди починаємо знизу чату (не від totalHeight!)
-            // Це забезпечує що повідомлення ЗАВЖДИ ростуть знизу вверх
-            int maxChatHeight = maxMessages * 9;
-            
-            // Добавляем плавное смещение при скроллинге
-            float scrollFraction = smoothScrollOffset - (int)smoothScrollOffset;
-            int pixelOffset = (int)(scrollFraction * 9); // 9 пикселей на строку
-            
-            int lineY = sy + maxChatHeight - 9 + pixelOffset; // Начинаем с низа чата + плавное смещение
+            // Начинаем рисовать снизу экрана чата
+            // sy - верхняя граница области чата
+            // Мы хотим начать с нижней границы
+            int chatBottomY = sy + (maxMessages * 9); // Нижняя граница чата
+            int lineY = chatBottomY - 9; // Начинаем с самого низа (минус одна строка)
             lastMessageBounds.clear();
             
-            // Ітеруємо у ЗВОРОТНОМУ порядку (від останнього до першого)
-            // щоб найновіше повідомлення (індекс 0) було знизу
-            for (int i = visibleLines.size() - 1; i >= 0; i--) {
+            // Итерируем в ПРЯМОМ порядке (0 = новейшее, size-1 = старейшее)
+            // Рисуем снизу вверх, чтобы новейшее (индекс 0) было ВНИЗУ
+            for (int i = 0; i < visibleLines.size(); i++) {
                 ChatLine line = visibleLines.get(i);
                 if (line == null) continue;
+                
+                // ОТЛАДКА: выводим порядок сообщений
+                if (i < 3) { // Только первые 3 для наглядности
+                    System.out.println("[CustomChat] Drawing message " + i + " at Y=" + lineY + ": " + 
+                        line.getChatComponent().getUnformattedText().substring(0, Math.min(30, line.getChatComponent().getUnformattedText().length())));
+                }
 
                 int lineAge = updateCounter - line.getUpdatedCounter();
 
-                // Коли чат відкритий — показуємо всі повідомлення з повною непрозорістю
+                // Ванильное затухание сообщений
                 double opacity;
                 if (chatOpen) {
+                    // Когда чат открыт - все сообщения полностью видимы
                     opacity = 1.0;
                 } else {
-                    // Як у ванільному Minecraft: 8 секунд (160 тіків) повна видимість, потім затухання
+                    // Ванильное Minecraft поведение: 
+                    // - 8 секунд (160 тиков) полная видимость
+                    // - затем 2 секунды (40 тиков) плавное затухание
                     if (lineAge < 160) {
-                        // Перші 8 секунд - повна видимість
                         opacity = 1.0;
                     } else if (lineAge < 200) {
-                        // Наступні 2 секунди (40 тіків) - плавне затухання
                         float fadeProgress = (float)(lineAge - 160) / 40.0f;
                         opacity = 1.0 - fadeProgress;
                     } else {
-                        // Після 10 секунд - невидимо
-                        String key = line.getChatComponent().getFormattedText();
-                        messageAppearTimes.remove(key);
+                        // После 10 секунд - невидимо
                         continue;
                     }
                 }
 
-                // НЕ застосовуємо подвійний smooth curve - це робило затухання занадто м'яким
-                opacity *= chatOpacity; // user setting
-
-                // Fade-in анимація (якщо увімкнено)
-                if (mod.isFadeMessages() && !chatOpen) {
-                    String key = line.getChatComponent().getFormattedText();
-                    if (!messageAppearTimes.containsKey(key)) {
-                        messageAppearTimes.put(key, System.currentTimeMillis());
-                    }
-                    long elapsed = System.currentTimeMillis() - messageAppearTimes.get(key);
-                    if (elapsed < FADE_IN_DURATION) {
-                        float t = (float) elapsed / FADE_IN_DURATION;
-                        float fadeIn = t * t * (3f - 2f * t); // smoothstep
-                        opacity *= fadeIn;
-                    }
-                }
+                // Применяем пользовательские настройки прозрачности
+                opacity *= chatOpacity;
 
                 int alpha = (int) (opacity * 255);
                 if (alpha < 3) {
-                    // Якщо повідомлення майже невидиме, все одно рахуємо його висоту
+                    // Если сообщение почти невидимо, все равно учитываем его высоту
                     String text = line.getChatComponent().getFormattedText();
                     int maxWidth = chatWidthPx - 4;
                     List<String> lines = wrapText(mc.fontRendererObj, text, maxWidth);
@@ -251,7 +212,7 @@ public class CustomChatRenderer {
                 // Text
                 String text = line.getChatComponent().getFormattedText();
                 
-                // Перенос довгих повідомлень на нові рядки
+                // Перенос длинных сообщений на новые строки
                 int maxWidth = chatWidthPx - 4;
                 List<String> lines = wrapText(mc.fontRendererObj, text, maxWidth);
                 
@@ -270,7 +231,7 @@ public class CustomChatRenderer {
                     int finalColor = (alpha << 24) | textColor;
                     mc.fontRendererObj.drawStringWithShadow(wrappedLine, sx + 2, lineY + 1, finalColor);
                     
-                    // Малюємо іконку копіювання
+                    // Рисуем иконку копирования
                     if (chatOpen) {
                         Module copyChat = AmethystClient.moduleManager.getModuleByName("CopyChat");
                         if (copyChat != null && copyChat.isEnabled()) {
@@ -280,7 +241,7 @@ public class CustomChatRenderer {
                             int iconColor = (alpha << 24) | 0x00FFFFFF;
                             mc.fontRendererObj.drawStringWithShadow(copyIcon, iconX, lineY + 1, iconColor);
                             
-                            // Зберігаємо позицію для обробки кліків (з урахуванням масштабу)
+                            // Сохраняем позицию для обработки кликов (с учетом масштаба)
                             int realX = (int)(iconX * chatScale);
                             int realY = (int)(lineY * chatScale);
                             int realWidth = (int)(iconWidth * chatScale);
@@ -294,18 +255,6 @@ public class CustomChatRenderer {
             }
 
             GlStateManager.popMatrix();
-            
-            // Показуємо індикатор скролу якщо чат проскролений
-            if (chatOpen && scrollOffset > 0) {
-                String scrollIndicator = "▲ +" + scrollOffset + " старих повідомлень";
-                int indicatorWidth = mc.fontRendererObj.getStringWidth(scrollIndicator);
-                // Позиционируем индикатор над чатом
-                int indicatorY = y - 12;
-                mc.fontRendererObj.drawStringWithShadow(scrollIndicator, 
-                    x + (int)((chatWidthPx * chatScale - indicatorWidth) / 2), 
-                    indicatorY, 
-                    0xFF88AAFF);
-            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -316,7 +265,7 @@ public class CustomChatRenderer {
         net.minecraft.client.gui.Gui.drawRect(left, top, right, bottom, color);
     }
 
-    // Метод для розбиття довгого тексту на кілька рядків
+    // Метод для разбиения длинного текста на несколько строк
     private List<String> wrapText(net.minecraft.client.gui.FontRenderer fr, String text, int maxWidth) {
         List<String> result = new java.util.ArrayList<>();
         
@@ -339,7 +288,7 @@ public class CustomChatRenderer {
                     result.add(currentLine.toString());
                     currentLine = new StringBuilder(word);
                 } else {
-                    // Слово само по собі задовге - обрізаємо його
+                    // Слово само по себе слишком длинное - обрезаем его
                     result.add(fr.trimStringToWidth(word, maxWidth));
                 }
             }
@@ -352,7 +301,7 @@ public class CustomChatRenderer {
         return result;
     }
     
-    // Метод для обробки кліків по іконці копіювання
+    // Метод для обработки кликов по иконке копирования
     public void handleChatClick(int mouseX, int mouseY) {
         CustomChat mod = (CustomChat) AmethystClient.moduleManager.getModuleByName("CustomChat");
         if (mod == null || !mod.isEnabled()) return;
@@ -363,11 +312,11 @@ public class CustomChatRenderer {
         GuiNewChat chat = mc.ingameGUI.getChatGUI();
         if (chat == null || !chat.getChatOpen()) return;
         
-        // Перевіряємо чи клік був на іконці копіювання
+        // Проверяем был ли клик на иконке копирования
         for (MessageBounds bounds : lastMessageBounds) {
             if (mouseX >= bounds.x && mouseX <= bounds.x + bounds.width &&
                 mouseY >= bounds.y && mouseY <= bounds.y + bounds.height) {
-                // Копіюємо повідомлення
+                // Копируем сообщение
                 String cleanMessage = bounds.message.replaceAll("§[0-9a-fk-or]", "");
                 ChatCopyButton.copyToClipboard(cleanMessage);
                 return;
