@@ -31,31 +31,43 @@ public class AmethystClient {
         
         // Подменяем ItemRenderer на кастомный для анимаций
         try {
-            java.lang.reflect.Field itemRendererField = net.minecraft.client.Minecraft.class.getDeclaredField("field_71460_t"); // entityRenderer -> itemRenderer
-            if (itemRendererField == null) {
-                itemRendererField = net.minecraft.client.Minecraft.class.getDeclaredField("entityRenderer");
-            }
-            itemRendererField.setAccessible(true);
-            
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
             
             // Получаем EntityRenderer
             net.minecraft.client.renderer.EntityRenderer entityRenderer = mc.entityRenderer;
             
-            // Ищем поле itemRenderer в EntityRenderer
-            java.lang.reflect.Field itemRendererInEntityRenderer = net.minecraft.client.renderer.EntityRenderer.class.getDeclaredField("field_78516_c");
-            if (itemRendererInEntityRenderer == null) {
-                itemRendererInEntityRenderer = net.minecraft.client.renderer.EntityRenderer.class.getDeclaredField("itemRenderer");
+            if (entityRenderer == null) {
+                System.err.println("[AmethystClient] EntityRenderer is null!");
+            } else {
+                // Ищем поле itemRenderer в EntityRenderer (пробуем разные варианты)
+                java.lang.reflect.Field itemRendererField = null;
+                
+                // Пробуем обфусцированное имя
+                try {
+                    itemRendererField = net.minecraft.client.renderer.EntityRenderer.class.getDeclaredField("field_78516_c");
+                } catch (NoSuchFieldException e1) {
+                    // Пробуем деобфусцированное имя
+                    try {
+                        itemRendererField = net.minecraft.client.renderer.EntityRenderer.class.getDeclaredField("itemRenderer");
+                    } catch (NoSuchFieldException e2) {
+                        System.err.println("[AmethystClient] Could not find itemRenderer field!");
+                    }
+                }
+                
+                if (itemRendererField != null) {
+                    itemRendererField.setAccessible(true);
+                    
+                    // Подменяем на кастомный
+                    CustomItemRenderer customRenderer = new CustomItemRenderer(mc);
+                    itemRendererField.set(entityRenderer, customRenderer);
+                    
+                    System.out.println("[AmethystClient] ✓ Successfully replaced ItemRenderer with CustomItemRenderer");
+                } else {
+                    System.err.println("[AmethystClient] ✗ Failed to find itemRenderer field");
+                }
             }
-            itemRendererInEntityRenderer.setAccessible(true);
-            
-            // Подменяем на кастомный
-            CustomItemRenderer customRenderer = new CustomItemRenderer(mc);
-            itemRendererInEntityRenderer.set(entityRenderer, customRenderer);
-            
-            System.out.println("[AmethystClient] Successfully replaced ItemRenderer with CustomItemRenderer");
         } catch (Exception e) {
-            System.err.println("[AmethystClient] Failed to replace ItemRenderer: " + e.getMessage());
+            System.err.println("[AmethystClient] ✗ Failed to replace ItemRenderer: " + e.getMessage());
             e.printStackTrace();
         }
 

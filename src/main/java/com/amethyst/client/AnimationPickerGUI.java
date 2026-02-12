@@ -108,6 +108,7 @@ public class AnimationPickerGUI extends GuiScreen {
         
         int preset17Y = yPos;
         int preset18Y = yPos + 32;
+        int resetY = yPos + 64;
         
         // 1.7 Preset Button
         boolean hover17 = mx >= panelX + 16 && mx <= panelX + panelW/2 - 8 &&
@@ -121,7 +122,13 @@ public class AnimationPickerGUI extends GuiScreen {
         drawButton(panelX + panelW/2 + 8, preset18Y, panelW/2 - 24, 26,
                 "1.8 Animations", 0xFFAA4444, hover18);
         
-        yPos += 70;
+        // Reset Button (Vanilla)
+        boolean hoverReset = mx >= panelX + 16 && mx <= panelX + panelW - 16 &&
+                            my >= resetY && my <= resetY + 26;
+        drawButton(panelX + 16, resetY, panelW - 32, 26,
+                "⟲ Reset to Vanilla", 0xFFFF8800, hoverReset);
+        
+        yPos += 102;
 
         // === ANIMATION TOGGLES ===
         yPos = drawSection(panelX, yPos, panelW, "ANIMATION TYPES", 0xFFFF4455);
@@ -332,28 +339,52 @@ public class AnimationPickerGUI extends GuiScreen {
         }
 
         int contentY = panelY + 45;
+        
+        // Check if click is within scrollable area
+        int contentH = panelH - 60;
+        if (my < contentY || my > contentY + contentH) {
+            super.mouseClicked(mx, my, btn);
+            return;
+        }
+        
         int yPos = contentY - scrollOffset;
 
         // Skip preset section header
         yPos += 20;
         
-        // Preset buttons
-        if (my >= yPos && my <= yPos + 26) {
+        // 1.7 Preset button
+        int preset17Y = yPos;
+        if (my >= preset17Y && my <= preset17Y + 26) {
             if (mx >= panelX + 16 && mx <= panelX + panelW/2 - 8) {
                 animations.setPreset17();
                 AmethystClient.moduleManager.saveConfig();
                 return;
             }
         }
+        
+        // 1.8 Preset button
         yPos += 32;
-        if (my >= yPos && my <= yPos + 26) {
+        int preset18Y = yPos;
+        if (my >= preset18Y && my <= preset18Y + 26) {
             if (mx >= panelX + panelW/2 + 8 && mx <= panelX + panelW - 16) {
                 animations.setPreset18();
                 AmethystClient.moduleManager.saveConfig();
                 return;
             }
         }
-        yPos += 70 - 32;
+        
+        // Reset button
+        yPos += 32;
+        int resetY = yPos;
+        if (my >= resetY && my <= resetY + 26) {
+            if (mx >= panelX + 16 && mx <= panelX + panelW - 16) {
+                animations.resetToVanilla();
+                AmethystClient.moduleManager.saveConfig();
+                return;
+            }
+        }
+        
+        yPos += 38; // Move past reset button + spacing
 
         // Animation toggles section
         yPos += 20;

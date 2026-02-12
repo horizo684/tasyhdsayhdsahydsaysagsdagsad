@@ -29,21 +29,47 @@ public class CustomItemRenderer extends ItemRenderer {
         this.mc = mcIn;
         
         try {
-            // Обфусцированные имена полей ItemRenderer
-            equippedProgressField = ItemRenderer.class.getDeclaredField("field_78454_c");
-            equippedProgressField.setAccessible(true);
+            // Пытаемся получить поля ItemRenderer (пробуем разные варианты имен)
+            equippedProgressField = getFieldByNames(ItemRenderer.class, 
+                "field_78454_c", "equippedProgress");
+            if (equippedProgressField != null) {
+                equippedProgressField.setAccessible(true);
+            }
             
-            prevEquippedProgressField = ItemRenderer.class.getDeclaredField("field_78451_d");
-            prevEquippedProgressField.setAccessible(true);
+            prevEquippedProgressField = getFieldByNames(ItemRenderer.class,
+                "field_78451_d", "prevEquippedProgress");
+            if (prevEquippedProgressField != null) {
+                prevEquippedProgressField.setAccessible(true);
+            }
             
-            itemToRenderField = ItemRenderer.class.getDeclaredField("field_78453_b");
-            itemToRenderField.setAccessible(true);
+            itemToRenderField = getFieldByNames(ItemRenderer.class,
+                "field_78453_b", "itemToRender");
+            if (itemToRenderField != null) {
+                itemToRenderField.setAccessible(true);
+            }
             
-            equippedItemSlotField = ItemRenderer.class.getDeclaredField("field_78455_a");
-            equippedItemSlotField.setAccessible(true);
+            equippedItemSlotField = getFieldByNames(ItemRenderer.class,
+                "field_78455_a", "equippedItemSlot");
+            if (equippedItemSlotField != null) {
+                equippedItemSlotField.setAccessible(true);
+            }
+            
+            System.out.println("[CustomItemRenderer] Successfully initialized reflection fields");
         } catch (Exception e) {
             System.err.println("[CustomItemRenderer] Failed to get reflection fields: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+    
+    private Field getFieldByNames(Class<?> clazz, String... names) {
+        for (String name : names) {
+            try {
+                return clazz.getDeclaredField(name);
+            } catch (NoSuchFieldException e) {
+                // Try next name
+            }
+        }
+        return null;
     }
     
     private Animations getAnimations() {
@@ -74,17 +100,33 @@ public class CustomItemRenderer extends ItemRenderer {
         
         if (stack != null) {
             Item item = stack.getItem();
-            needsCustom = (anim.isOldBlockhit() && player.isBlocking()) ||
-                         (anim.isOldSword() && item instanceof ItemSword) ||
-                         (anim.isOldBow() && item instanceof ItemBow) ||
-                         (anim.isOldRod() && item instanceof ItemFishingRod) ||
-                         (anim.isOldEating() && item instanceof ItemFood) ||
-                         anim.getItemPosX() != 0.56f ||
-                         anim.getItemPosY() != -0.52f ||
-                         anim.getItemPosZ() != -0.72f ||
-                         anim.getItemScale() != 0.4f;
+            
+            // Проверяем только активные анимации (не просто наличие флага)
+            boolean hasActiveAnimation = false;
+            if (anim.isOldBlockhit() && player.isBlocking()) hasActiveAnimation = true;
+            if (anim.isOldSword() && item instanceof ItemSword && player.isSwingInProgress) hasActiveAnimation = true;
+            if (anim.isOldBow() && item instanceof ItemBow && player.getItemInUse() != null) hasActiveAnimation = true;
+            if (anim.isOldRod() && item instanceof ItemFishingRod) hasActiveAnimation = true;
+            if (anim.isOldEating() && item instanceof ItemFood && player.getItemInUse() != null) hasActiveAnimation = true;
+            
+            // Проверяем кастомную позицию/масштаб
+            boolean hasCustomTransform = anim.getItemPosX() != 0.0f ||
+                                        anim.getItemPosY() != 0.0f ||
+                                        anim.getItemPosZ() != 0.0f ||
+                                        anim.getItemScale() != 0.4f;
+            
+            needsCustom = hasActiveAnimation || hasCustomTransform;
+            
+            // ОТЛАДКА - выводим раз в секунду
+            if (mc.theWorld.getTotalWorldTime() % 20 == 0) {
+                System.out.println("[CustomItemRenderer] Scale=" + anim.getItemScale() + 
+                                 " PosX=" + anim.getItemPosX() + 
+                                 " Custom=" + needsCustom +
+                                 " ActiveAnim=" + hasActiveAnimation +
+                                 " CustomTransform=" + hasCustomTransform);
+            }
         } else {
-            needsCustom = anim.isPunching();
+            needsCustom = anim.isPunching() && player.isSwingInProgress;
         }
         
         if (!needsCustom) {
@@ -122,19 +164,30 @@ public class CustomItemRenderer extends ItemRenderer {
     }
     
     private void applyBaseTransforms(float equippedProgress, Animations anim) {
-        // Базовая трансформация как в vanilla
-        GlStateManager.translate(0.56F, -0.52F, -0.72F);
+        // Получаем кастомные значения позиции
+        float posX = anim.getItemPosX();
+        float posY = anim.getItemPosY();
+        float posZ = anim.getItemPosZ();
+        
+        // Если значения 0, используем дефолтные vanilla позиции
+        if (posX == 0.0f && posY == 0.0f && posZ == 0.0f) {
+            posX = 0.56f;
+            posY = -0.52f;
+            posZ = -0.72f;
+        }
+        
+        // Применяем позицию
+        GlStateManager.translate(posX, posY, posZ);
         GlStateManager.translate(0.0F, equippedProgress * -0.6F, 0.0F);
         GlStateManager.rotate(45.0F, 0.0F, 1.0F, 0.0F);
         
-        // Применяем кастомные смещения
-        float dx = anim.getItemPosX() - 0.56f;
-        float dy = anim.getItemPosY() - (-0.52f);
-        float dz = anim.getItemPosZ() - (-0.72f);
+        // ВАЖНО: Сначала применяем базовый vanilla масштаб
+        float vanillaBaseScale = 0.4F;
+        GlStateManager.scale(vanillaBaseScale, vanillaBaseScale, vanillaBaseScale);
         
-        GlStateManager.translate(dx, dy, dz);
-        
-        // Применяем масштаб
+        // Потом применяем кастомный масштаб (множитель)
+        // Если itemScale = 0.4, то scale = 1.0 (без изменений)
+        // Если itemScale = 0.8, то scale = 2.0 (в 2 раза больше)
         float scale = anim.getItemScale() / 0.4f;
         GlStateManager.scale(scale, scale, scale);
     }

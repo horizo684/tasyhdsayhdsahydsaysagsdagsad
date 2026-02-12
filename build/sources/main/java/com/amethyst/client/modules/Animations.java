@@ -223,7 +223,40 @@ public class Animations extends Module {
         itemPosX = 0.0f;
         itemPosY = 0.0f;
         itemPosZ = 0.0f;
-        itemScale = 1.0f;
+        itemScale = 0.4f; // Нормальный размер предметов в Minecraft
+        armorFlashDuration = 0;
+        armorRedIntensity = 0.0f;
+    }
+    
+    /**
+     * Reset to vanilla Minecraft values (pure default)
+     */
+    public void resetToVanilla() {
+        // Disable all custom animations
+        oldBlockhit = false;
+        oldDamage = false;
+        oldRod = false;
+        oldBow = false;
+        oldSword = false;
+        oldEating = false;
+        punching = false;
+        smoothSwing = false;
+        
+        // Reset swing speed to vanilla
+        swingSpeed = 8.0f;
+        
+        // Reset item position to vanilla (no offset)
+        itemPosX = 0.0f;
+        itemPosY = 0.0f;
+        itemPosZ = 0.0f;
+        itemScale = 0.4f; // Нормальный размер предметов в Minecraft
+        
+        // Reset block position to vanilla (no offset)
+        blockPosX = 0.0f;
+        blockPosY = 0.0f;
+        blockPosZ = 0.0f;
+        
+        // Disable damage effects
         armorFlashDuration = 0;
         armorRedIntensity = 0.0f;
     }
