@@ -205,12 +205,20 @@ public class ClickGUIPickerGUI extends GuiScreen {
         mc.fontRendererObj.drawString(label, x, y+2, state ? 0xFFCCDDEE : 0xFF445566);
         int bx = x + w - 42, bw = 38, bh = 13;
         boolean hov = mx >= bx && mx < bx+bw && my >= y && my < y+bh;
-        drawRect(bx, y, bx+bw, y+bh, state ? 0xFF0A2E18 : 0xFF1A0A0A);
-        drawHollowRect(bx, y, bx+bw, y+bh, state ? 0xFF1E6B38 : 0xFF552222);
+        
+        // Более яркий фон для включённого состояния
+        int bgColor = state ? 0xFF1A4428 : 0xFF2A1515;
+        if (hov) {
+            bgColor = state ? 0xFF225533 : 0xFF3A2020;
+        }
+        
+        drawRect(bx, y, bx+bw, y+bh, bgColor);
+        drawHollowRect(bx, y, bx+bw, y+bh, state ? 0xFF2E8B48 : 0xFF662222);
+        
         String txt = state ? "ON" : "OFF";
         mc.fontRendererObj.drawString(txt,
             bx + bw/2 - mc.fontRendererObj.getStringWidth(txt)/2, y+2,
-            state ? 0xFF55FF77 : 0xFFFF5544);
+            state ? 0xFF66FF88 : 0xFFFF6655);
     }
 
     private void drawPreview(int x, int y, float anim) {
@@ -293,6 +301,8 @@ public class ClickGUIPickerGUI extends GuiScreen {
             if (mx >= bx && mx < bx + animBtnW
              && my >= animBtnY[0] && my < animBtnY[0] + 16) {
                 mod.setAnimType(animTypes[i]);
+                mod.saveSettings();
+                com.amethyst.client.AmethystClient.config.save();
                 return;
             }
         }
@@ -304,6 +314,8 @@ public class ClickGUIPickerGUI extends GuiScreen {
             if (mx >= bx && mx < bx + styleBtnW
              && my >= styleBtnY[0] && my < styleBtnY[0] + 16) {
                 mod.setGUIStyle(styles[i]);
+                mod.saveSettings();
+                com.amethyst.client.AmethystClient.config.save();
                 return;
             }
         }
@@ -316,15 +328,27 @@ public class ClickGUIPickerGUI extends GuiScreen {
             return;
         }
 
-        // Extras toggles
+        // Extras toggles - Background Blur
         int tx = px + 16, tw = PANEL_W - 32;
         int togBx = tx + tw - 42;
+        
+        // Проверяем клик по Background Blur
         if (mx >= togBx && mx < togBx+38 && my >= toggle1Y && my < toggle1Y+13) {
-            mod.setBlur(!mod.isBlur());
+            boolean newBlur = !mod.isBlur();
+            mod.setBlur(newBlur);
+            mod.saveSettings();
+            com.amethyst.client.AmethystClient.config.save();
+            System.out.println("[ClickGUI] Background Blur toggled to: " + newBlur);
             return;
         }
+        
+        // Проверяем клик по Open Particles
         if (mx >= togBx && mx < togBx+38 && my >= toggle2Y && my < toggle2Y+13) {
-            mod.setParticles(!mod.isParticles());
+            boolean newParticles = !mod.isParticles();
+            mod.setParticles(newParticles);
+            mod.saveSettings();
+            com.amethyst.client.AmethystClient.config.save();
+            System.out.println("[ClickGUI] Open Particles toggled to: " + newParticles);
             return;
         }
 
@@ -333,6 +357,11 @@ public class ClickGUIPickerGUI extends GuiScreen {
 
     @Override
     protected void mouseReleased(int mx, int my, int state) {
+        if (draggingSpeed) {
+            // Сохраняем настройки при отпускании слайдера
+            mod.saveSettings();
+            com.amethyst.client.AmethystClient.config.save();
+        }
         draggingSpeed = false;
         super.mouseReleased(mx, my, state);
     }

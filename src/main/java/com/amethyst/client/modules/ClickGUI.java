@@ -60,4 +60,36 @@ public class ClickGUI extends Module {
         GUIStyle[] vals = GUIStyle.values();
         guiStyle = vals[(guiStyle.ordinal() + 1) % vals.length];
     }
+    
+    // ── Config persistence ────────────────────────────────────────────────────
+    
+    @Override
+    public void saveSettings() {
+        com.amethyst.client.AmethystClient.config.set(getName() + ".animType", animType.name());
+        com.amethyst.client.AmethystClient.config.set(getName() + ".guiStyle", guiStyle.name());
+        com.amethyst.client.AmethystClient.config.set(getName() + ".animSpeed", animSpeed);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".blur", blur);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".particles", particles);
+    }
+    
+    @Override
+    public void loadSettings() {
+        try {
+            String animTypeStr = com.amethyst.client.AmethystClient.config.getString(getName() + ".animType", "ZOOM");
+            animType = AnimType.valueOf(animTypeStr);
+        } catch (Exception e) {
+            animType = AnimType.ZOOM;
+        }
+        
+        try {
+            String guiStyleStr = com.amethyst.client.AmethystClient.config.getString(getName() + ".guiStyle", "MODERN");
+            guiStyle = GUIStyle.valueOf(guiStyleStr);
+        } catch (Exception e) {
+            guiStyle = GUIStyle.MODERN;
+        }
+        
+        animSpeed = com.amethyst.client.AmethystClient.config.getFloat(getName() + ".animSpeed", 0.17f);
+        blur      = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".blur", false);
+        particles = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".particles", false);
+    }
 }

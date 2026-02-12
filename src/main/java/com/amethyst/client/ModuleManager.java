@@ -59,8 +59,10 @@ public class ModuleManager {
     }
 
     public void saveConfig() {
-        for (Module m : modules)
+        for (Module m : modules) {
             AmethystClient.config.set(m.getName() + ".enabled", m.isEnabled());
+            m.saveSettings();  // Сохраняем специфические настройки модуля
+        }
         AmethystClient.config.save();
     }
 
@@ -68,6 +70,7 @@ public class ModuleManager {
         for (Module m : modules) {
             boolean en = AmethystClient.config.getBoolean(m.getName() + ".enabled", false);
             if (en) m.setEnabled(true);
+            m.loadSettings();  // Загружаем специфические настройки модуля
         }
     }
 }

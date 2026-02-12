@@ -82,4 +82,9 @@ public class Module {
     public Category getCategory() {
         return category;
     }
+    
+    // Методы для сохранения и загрузки специфических настроек модуля
+    // Переопределяются в наследниках при необходимости
+    public void saveSettings() {}
+    public void loadSettings() {}
 }
