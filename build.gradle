@@ -10,7 +10,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "1.1"
+version = "1.2"
 group = "com.amethyst.client"
 archivesBaseName = "AmethystClient"
 
@@ -24,6 +24,11 @@ minecraft {
     version = "1.8.9-11.15.1.2318-1.8.9"
     runDir = "run"
     mappings = "stable_22"
+}
+
+// Orange's 1.7 Animations jar is in libs/ folder
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 processResources {
@@ -42,10 +47,12 @@ processResources {
 
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    
+
+    // Bundle Orange's classes into our jar so it works as a standalone mod
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+
     manifest {
         attributes([
-            'FMLCorePlugin': 'com.amethyst.client.asm.AmethystCorePlugin',
             'FMLCorePluginContainsFMLMod': 'true'
         ])
     }

@@ -1,207 +1,187 @@
 package com.amethyst.client.modules;
 
 import com.amethyst.client.Module;
-import com.amethyst.client.Module.Category;
+import com.orangemarshall.animations.ArmorAnimation;
+import com.orangemarshall.animations.BlockhitAnimation;
+import com.orangemarshall.animations.config.Config;
+import net.minecraftforge.common.MinecraftForge;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+
+/**
+ * Animations module — wraps Orange's 1.7 Animations Mod.
+ * Toggle in ClickGUI enables/disables Orange's event listeners.
+ * Orange's Config fields are synced from our settings.
+ */
 public class Animations extends Module {
 
-    // Animation settings
-    private boolean oldBlockhit = true;      // 1.7 blockhit animation
-    private boolean oldDamage = true;        // 1.7 damage/hurt animation (red armor)
-    private boolean oldRod = true;           // 1.7 fishing rod animation
-    private boolean oldBow = true;           // 1.7 bow animation
-    private boolean oldSword = true;         // 1.7 sword swing
-    private boolean oldEating = true;        // 1.7 eating animation
-    private boolean punching = true;         // Show punching animation
-    
-    // Swing settings
-    private float swingSpeed = 6.0f;         // Swing animation speed (1.7 = 6, 1.8 = 8)
-    private boolean smoothSwing = true;      // Smooth sword swing
-    
-    // Red armor damage
-    private int armorFlashDuration = 10;     // Ticks for red armor flash (1.7 = 10)
-    private float armorRedIntensity = 0.8f;  // Intensity of red color (0.0-1.0)
+    private BlockhitAnimation blockhitAnimation;
+    private ArmorAnimation    armorAnimation;
+    private boolean           registered = false;
+
+    // Settings that map directly to Orange's Config
+    private boolean blockhit = true;
+    private boolean punching = true;
+    private boolean oldRod   = true;
+    private boolean redArmor = true;
+    private boolean deepRed  = false;
+    private boolean oldEnchantGlint    = false;
+    private boolean thirdPersonBlocking = false;
+
+    // Extra GUI-only toggles (not in Orange's Config but shown in picker)
+    private boolean oldSword   = true;
+    private boolean smoothSwing = true;
+    private boolean oldBow     = true;
+    private boolean oldEating  = true;
+    private float   swingSpeed = 6.0f;
+    private int     armorFlashDuration = 10;
+    private float   armorRedIntensity  = 0.8f;
 
     public Animations() {
-        super("Animations", "1.7 style animations", 0, Category.RENDER);
-        this.setEnabled(true); // Включен по умолчанию
+        super("Animations", "1.7 animations", 0, Category.RENDER);
+        this.setEnabled(true);
     }
 
-    // ===== Getters and Setters =====
-    
-    public boolean isOldBlockhit() {
-        return oldBlockhit;
+    // ── Module lifecycle ──────────────────────────────────────────────────────
+
+    @Override
+    public void onEnable() {
+        initOrangeConfig();
+        syncConfig();
+        registerOrange();
     }
 
-    public void setOldBlockhit(boolean oldBlockhit) {
-        this.oldBlockhit = oldBlockhit;
+    @Override
+    public void onDisable() {
+        unregisterOrange();
     }
 
-    public boolean isOldDamage() {
-        return oldDamage;
+    // ── Orange integration ────────────────────────────────────────────────────
+
+    private void initOrangeConfig() {
+        try {
+            if (Config.getInstance() != null) return;
+            Constructor<Config> ctor = Config.class.getDeclaredConstructor(File.class, String.class);
+            ctor.setAccessible(true);
+            ctor.newInstance(new File("config/orange_animations.cfg"), "1");
+        } catch (Exception e) {
+            System.err.println("[Animations] Config init failed: " + e);
+        }
     }
 
-    public void setOldDamage(boolean oldDamage) {
-        this.oldDamage = oldDamage;
+    private void syncConfig() {
+        try {
+            Config cfg = Config.getInstance();
+            if (cfg == null) return;
+            cfg.blockhit             = this.blockhit;
+            cfg.punching             = this.punching;
+            cfg.oldRod               = this.oldRod;
+            cfg.redArmor             = this.redArmor;
+            cfg.deepRed              = this.deepRed;
+            cfg.oldEnchantGlint      = this.oldEnchantGlint;
+            cfg.thirdPersonBlocking  = this.thirdPersonBlocking;
+        } catch (Exception e) {
+            System.err.println("[Animations] syncConfig failed: " + e);
+        }
     }
 
-    public boolean isOldRod() {
-        return oldRod;
+    private void registerOrange() {
+        if (registered) return;
+        try {
+            if (blockhitAnimation == null) blockhitAnimation = new BlockhitAnimation();
+            if (armorAnimation    == null) armorAnimation    = new ArmorAnimation();
+            MinecraftForge.EVENT_BUS.register(blockhitAnimation);
+            MinecraftForge.EVENT_BUS.register(armorAnimation);
+            registered = true;
+        } catch (Exception e) {
+            System.err.println("[Animations] Register failed: " + e);
+            e.printStackTrace();
+        }
     }
 
-    public void setOldRod(boolean oldRod) {
-        this.oldRod = oldRod;
+    private void unregisterOrange() {
+        if (!registered) return;
+        try {
+            if (blockhitAnimation != null) MinecraftForge.EVENT_BUS.unregister(blockhitAnimation);
+            if (armorAnimation    != null) MinecraftForge.EVENT_BUS.unregister(armorAnimation);
+        } catch (Exception ignored) {}
+        registered = false;
     }
 
-    public boolean isOldBow() {
-        return oldBow;
-    }
+    // ── Getters / Setters (all sync to Orange Config) ────────────────────────
 
-    public void setOldBow(boolean oldBow) {
-        this.oldBow = oldBow;
-    }
+    public boolean isOldBlockhit()             { return blockhit; }
+    public void    setOldBlockhit(boolean v)   { blockhit = v; syncConfig(); }
 
-    public boolean isOldSword() {
-        return oldSword;
-    }
+    public boolean isPunching()                { return punching; }
+    public void    setPunching(boolean v)      { punching = v; syncConfig(); }
 
-    public void setOldSword(boolean oldSword) {
-        this.oldSword = oldSword;
-    }
+    public boolean isOldRod()                  { return oldRod; }
+    public void    setOldRod(boolean v)        { oldRod = v; syncConfig(); }
 
-    public boolean isOldEating() {
-        return oldEating;
-    }
+    public boolean isOldDamage()               { return redArmor; }
+    public void    setOldDamage(boolean v)     { redArmor = v; syncConfig(); }
 
-    public void setOldEating(boolean oldEating) {
-        this.oldEating = oldEating;
-    }
+    public boolean isOldSword()                { return oldSword; }
+    public void    setOldSword(boolean v)      { oldSword = v; }
 
-    public boolean isPunching() {
-        return punching;
-    }
+    public boolean isSmoothSwing()             { return smoothSwing; }
+    public void    setSmoothSwing(boolean v)   { smoothSwing = v; }
 
-    public void setPunching(boolean punching) {
-        this.punching = punching;
-    }
+    public boolean isOldBow()                  { return oldBow; }
+    public void    setOldBow(boolean v)        { oldBow = v; }
 
-    public float getSwingSpeed() {
-        return swingSpeed;
-    }
+    public boolean isOldEating()               { return oldEating; }
+    public void    setOldEating(boolean v)     { oldEating = v; }
 
-    public void setSwingSpeed(float swingSpeed) {
-        this.swingSpeed = Math.max(1.0f, Math.min(20.0f, swingSpeed));
-    }
+    public float getSwingSpeed()               { return swingSpeed; }
+    public void  setSwingSpeed(float v)        { swingSpeed = Math.max(1f, Math.min(20f, v)); }
 
-    public boolean isSmoothSwing() {
-        return smoothSwing;
-    }
+    public int  getArmorFlashDuration()        { return armorFlashDuration; }
+    public void setArmorFlashDuration(int v)   { armorFlashDuration = Math.max(1, Math.min(40, v)); }
 
-    public void setSmoothSwing(boolean smoothSwing) {
-        this.smoothSwing = smoothSwing;
-    }
+    public float getArmorRedIntensity()        { return armorRedIntensity; }
+    public void  setArmorRedIntensity(float v) { armorRedIntensity = Math.max(0f, Math.min(1f, v)); }
 
-    public int getArmorFlashDuration() {
-        return armorFlashDuration;
-    }
-
-    public void setArmorFlashDuration(int armorFlashDuration) {
-        this.armorFlashDuration = Math.max(1, Math.min(40, armorFlashDuration));
-    }
-
-    public float getArmorRedIntensity() {
-        return armorRedIntensity;
-    }
-
-    public void setArmorRedIntensity(float armorRedIntensity) {
-        this.armorRedIntensity = Math.max(0.0f, Math.min(1.0f, armorRedIntensity));
-    }
-    
-    // === Preset methods ===
-    
-    /**
-     * Reset to default 1.7 values
-     */
     public void setPreset17() {
-        oldBlockhit = true;
-        oldDamage = true;
-        oldRod = true;
-        oldBow = true;
-        oldSword = true;
-        oldEating = true;
-        punching = true;
-        swingSpeed = 6.0f;
-        smoothSwing = true;
-        armorFlashDuration = 10;
-        armorRedIntensity = 0.8f;
+        blockhit = true; punching = true; oldRod = true; redArmor = true;
+        oldSword = true; smoothSwing = true; oldBow = true; oldEating = true;
+        swingSpeed = 6f; armorFlashDuration = 10; armorRedIntensity = 0.8f;
+        syncConfig();
     }
-    
-    /**
-     * Reset to default 1.8 values
-     */
     public void setPreset18() {
-        oldBlockhit = false;
-        oldDamage = false;
-        oldRod = false;
-        oldBow = false;
-        oldSword = false;
-        oldEating = false;
-        punching = false;
-        swingSpeed = 8.0f;
-        smoothSwing = false;
-        armorFlashDuration = 0;
-        armorRedIntensity = 0.0f;
+        blockhit = false; punching = false; oldRod = false; redArmor = false;
+        oldSword = false; smoothSwing = false; oldBow = false; oldEating = false;
+        swingSpeed = 8f; armorFlashDuration = 0; armorRedIntensity = 0f;
+        syncConfig();
     }
-    
-    /**
-     * Reset to vanilla Minecraft values (pure default)
-     */
-    public void resetToVanilla() {
-        // Disable all custom animations
-        oldBlockhit = false;
-        oldDamage = false;
-        oldRod = false;
-        oldBow = false;
-        oldSword = false;
-        oldEating = false;
-        punching = false;
-        smoothSwing = false;
-        
-        // Reset swing speed to vanilla
-        swingSpeed = 8.0f;
-        
-        // Disable damage effects
-        armorFlashDuration = 0;
-        armorRedIntensity = 0.0f;
-    }
-    
+    public void resetToVanilla() { setPreset18(); }
+
+    // ── Config persistence ────────────────────────────────────────────────────
+
     @Override
     public void saveSettings() {
-        com.amethyst.client.AmethystClient.config.set(getName() + ".oldBlockhit", oldBlockhit);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".oldDamage", oldDamage);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".oldRod", oldRod);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".oldBow", oldBow);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".oldSword", oldSword);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".oldEating", oldEating);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".punching", punching);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".swingSpeed", swingSpeed);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".smoothSwing", smoothSwing);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".armorFlashDuration", armorFlashDuration);
-        com.amethyst.client.AmethystClient.config.set(getName() + ".armorRedIntensity", armorRedIntensity);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".blockhit",   blockhit);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".punching",   punching);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".oldRod",     oldRod);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".redArmor",   redArmor);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".oldSword",   oldSword);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".smoothSwing",smoothSwing);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".oldBow",     oldBow);
+        com.amethyst.client.AmethystClient.config.set(getName() + ".oldEating",  oldEating);
     }
-    
+
     @Override
     public void loadSettings() {
-        oldBlockhit = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldBlockhit", true);
-        oldDamage = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldDamage", true);
-        oldRod = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldRod", true);
-        oldBow = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldBow", true);
-        oldSword = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldSword", true);
-        oldEating = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldEating", true);
-        punching = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".punching", true);
-        swingSpeed = com.amethyst.client.AmethystClient.config.getFloat(getName() + ".swingSpeed", 6.0f);
+        blockhit    = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".blockhit",    true);
+        punching    = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".punching",    true);
+        oldRod      = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldRod",      true);
+        redArmor    = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".redArmor",    true);
+        oldSword    = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldSword",    true);
         smoothSwing = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".smoothSwing", true);
-        armorFlashDuration = com.amethyst.client.AmethystClient.config.getInt(getName() + ".armorFlashDuration", 10);
-        armorRedIntensity = com.amethyst.client.AmethystClient.config.getFloat(getName() + ".armorRedIntensity", 0.8f);
+        oldBow      = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldBow",      true);
+        oldEating   = com.amethyst.client.AmethystClient.config.getBoolean(getName() + ".oldEating",   true);
+        syncConfig();
     }
 }

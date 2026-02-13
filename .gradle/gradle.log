@@ -29,9 +29,7 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJavaNote: C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\CustomItemRenderer.java uses or overrides a deprecated API.
-Note: Recompile with -Xlint:deprecation for details.
-
+:compileJava
 :processResources
 :classes
 :jar
@@ -42,7 +40,7 @@ Note: Recompile with -Xlint:deprecation for details.
 :test UP-TO-DATE
 :reobfJar
 :extractRangemapReplacedMain
-C:\Users\horizo\Desktop\newclient\build\sources\main\java
+C:\Users\horizo\cl\build\sources\main\java
 :retromapReplacedMain
 remapping source...
 :sourceJar
@@ -52,4 +50,4 @@ remapping source...
 
 BUILD SUCCESSFUL
 
-Total time: 42.556 secs
+Total time: 40.713 secs
