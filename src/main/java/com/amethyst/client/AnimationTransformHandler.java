@@ -22,7 +22,12 @@ public class AnimationTransformHandler {
     public static void applyTransforms(float equipProgress, float swingProgress) {
         // Получаем модуль анимаций
         Animations anim = getAnimations();
-        if (anim == null || !anim.isEnabled()) {
+        if (anim == null) {
+            System.out.println("[AnimationTransformHandler] WARNING: Animations module is NULL!");
+            return;
+        }
+        
+        if (!anim.isEnabled()) {
             return; // Модуль выключен - не применяем ничего
         }
         
@@ -93,6 +98,7 @@ public class AnimationTransformHandler {
         
         // === 1.7 BLOCKHIT (ПРИОРИТЕТ!) ===
         if (anim.isOldBlockhit() && isBlocking) {
+            System.out.println("[AnimationTransformHandler] Applying 1.7 blockhit animation!");
             // 1.7 blockhit трансформация
             // Эти значения взяты из декомпиляции оригинального 1.7 ItemRenderer
             GlStateManager.translate(-0.5F, 0.2F, 0.0F);

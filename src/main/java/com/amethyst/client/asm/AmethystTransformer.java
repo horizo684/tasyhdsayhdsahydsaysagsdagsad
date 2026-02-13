@@ -38,19 +38,22 @@ public class AmethystTransformer implements IClassTransformer {
         
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-            
-            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Хукаем transformFirstPersonItem вместо renderItemInFirstPerson
+            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Делаем transformFirstPersonItem публичным
             // Deobfuscated: transformFirstPersonItem
             // Obfuscated: func_178096_b
             // Signature: (FF)V - два float параметра (equipProgress, swingProgress)
             if ((name.equals("transformFirstPersonItem") || name.equals("func_178096_b")) 
                 && desc.equals("(FF)V")) {
-                System.out.println("[Animations] Found transformFirstPersonItem - injecting hook");
+                System.out.println("[Animations] Found transformFirstPersonItem - making it public and injecting hook");
+                
+                // Меняем модификатор с private на public
+                int newAccess = Opcodes.ACC_PUBLIC | (access & ~Opcodes.ACC_PRIVATE & ~Opcodes.ACC_PROTECTED);
+                
+                MethodVisitor mv = super.visitMethod(newAccess, name, desc, signature, exceptions);
                 return new TransformMethodVisitor(api, mv);
             }
             
-            return mv;
+            return super.visitMethod(access, name, desc, signature, exceptions);
         }
     }
     

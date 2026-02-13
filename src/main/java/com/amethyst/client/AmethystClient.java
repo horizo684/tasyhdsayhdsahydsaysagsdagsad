@@ -52,8 +52,14 @@ public class AmethystClient {
         System.out.println("[AmethystClient] IRC system initialized");
         System.out.println("[AmethystClient] Your IRC label: " + ircManager.getMyCustomLabel());
         
-        // === ANIMATIONS (через ASM, без подмены ItemRenderer) ===
-        System.out.println("[AmethystClient] Using ASM transformer for animations");
+        // === ANIMATIONS (через рефлексию) ===
+        System.out.println("[AmethystClient] Patching ItemRenderer for 1.7 animations");
+        ItemRendererReflectionPatcher.patch(mc);
+        if (ItemRendererReflectionPatcher.isPatched()) {
+            System.out.println("[AmethystClient] ItemRenderer successfully patched!");
+        } else {
+            System.err.println("[AmethystClient] Failed to patch ItemRenderer!");
+        }
 
         // Core renderers
         MinecraftForge.EVENT_BUS.register(new HUDRenderer());

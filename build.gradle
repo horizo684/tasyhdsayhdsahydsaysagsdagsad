@@ -42,4 +42,11 @@ processResources {
 
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
+    manifest {
+        attributes([
+            'FMLCorePlugin': 'com.amethyst.client.asm.AmethystCorePlugin',
+            'FMLCorePluginContainsFMLMod': 'true'
+        ])
+    }
 }
