@@ -130,9 +130,32 @@ public class CustomItemRenderer extends ItemRenderer {
     
     /**
      * Применяет 1.7 трансформации (полная замена vanilla метода)
+     * Основано на Orange's 1.7 Animations и коде из Optifine issue #2098
      */
     private void apply17Transforms(ItemStack stack, EntityPlayerSP player, float equipProgress, float swingProgress, Animations anim) {
-        // Базовые трансформации (как в vanilla)
+        boolean isBlocking = stack != null && player.isBlocking();
+        boolean isEating = player.getItemInUse() != null && stack != null && stack.getItem() instanceof ItemFood;
+        boolean isSwinging = player.isSwingInProgress && !isEating && !isBlocking;
+        
+        // === ДОПОЛНИТЕЛЬНЫЕ 1.7 ТРАНСФОРМАЦИИ ДЛЯ ОПРЕДЕЛЕННЫХ ПРЕДМЕТОВ ===
+        // Bow (лук) - Item ID 261
+        if (anim.isOldBow() && stack != null && Item.getIdFromItem(stack.getItem()) == 261) {
+            GlStateManager.translate(-0.01f, 0.05f, -0.06f);
+        }
+        
+        // Fishing Rod (удочка) - Item ID 346
+        if (anim.isOldRod() && stack != null && Item.getIdFromItem(stack.getItem()) == 346) {
+            GlStateManager.translate(0.08f, -0.027f, -0.33f);
+            GlStateManager.scale(0.93f, 1.0f, 1.0f);
+        }
+        
+        // Sword swing с уменьшением размера
+        if (anim.isOldSword() && isSwinging && stack != null && !isEating && !isBlocking) {
+            GlStateManager.scale(0.85f, 0.85f, 0.85f);
+            GlStateManager.translate(-0.078f, 0.003f, 0.05f);
+        }
+        
+        // === БАЗОВЫЕ ТРАНСФОРМАЦИИ (как в vanilla) ===
         GlStateManager.translate(0.56F, -0.52F, -0.71999997F);
         GlStateManager.translate(0.0F, equipProgress * -0.6F, 0.0F);
         GlStateManager.rotate(45.0F, 0.0F, 1.0F, 0.0F);
@@ -140,88 +163,22 @@ public class CustomItemRenderer extends ItemRenderer {
         float swing = MathHelper.sin(swingProgress * swingProgress * (float)Math.PI);
         float swingSqrt = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
         
-        boolean isBlocking = stack != null && player.isBlocking();
+        // === VANILLA SWING ТРАНСФОРМАЦИИ ===
+        GlStateManager.rotate(swing * -20.0F, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(swingSqrt * -20.0F, 0.0F, 0.0F, 1.0F);
+        GlStateManager.rotate(swingSqrt * -80.0F, 1.0F, 0.0F, 0.0F);
+        
+        GlStateManager.scale(0.4F, 0.4F, 0.4F);
         
         // === 1.7 BLOCKHIT ===
+        // Это ключевая часть! Blockhit работает потому что свинг происходит
+        // даже когда игрок блокируется (благодаря BlockhitHandler)
         if (anim.isOldBlockhit() && isBlocking) {
-            System.out.println("[CustomItemRenderer] >>> BLOCKHIT 1.7 <<<");
-            
-            // Сбрасываем предыдущие vanilla трансформации
-            GlStateManager.rotate(-swingSqrt * 20.0F, -1.0F, -0.0F, -0.0F);
-            GlStateManager.rotate(-swing * 20.0F, -1.0F, -0.0F, -0.0F);
-            GlStateManager.rotate(-swing * 80.0F, 1.0F, -0.0F, -0.0F);
-            
-            // Применяем 1.7 blockhit трансформацию
-            GlStateManager.translate(-0.5F, 0.2F, 0.0F);
-            GlStateManager.rotate(30.0F, 0.0F, 1.0F, 0.0F);
-            GlStateManager.rotate(-80.0F, 1.0F, 0.0F, 0.0F);
-            GlStateManager.rotate(60.0F, 0.0F, 0.0F, 1.0F);
-            return;
+            System.out.println("[CustomItemRenderer] >>> BLOCKHIT 1.7 ACTIVE <<<");
+            // В 1.7 blockhit просто позволял свинг анимации работать при блокировке
+            // Основная магия в том, что BlockhitHandler запускает свинг
+            // А мы здесь не отменяем его трансформации
         }
-        
-        // === PUNCHING ===
-        if (stack == null && anim.isPunching() && player.isSwingInProgress) {
-            GlStateManager.rotate(-swingSqrt * 40.0F, 1.0F, 0.0F, 0.0F);
-            GlStateManager.rotate(swing * 10.0F, 0.0F, 1.0F, 0.0F);
-            return;
-        }
-        
-        if (stack == null) {
-            // Vanilla punching
-            GlStateManager.rotate(-swingSqrt * 40.0F, 1.0F, 0.0F, 0.0F);
-            GlStateManager.rotate(-swing * 20.0F, 1.0F, 0.0F, 0.0F);
-            return;
-        }
-        
-        Item item = stack.getItem();
-        
-        // === SWORD SWING ===
-        if (anim.isOldSword() && item instanceof ItemSword && player.isSwingInProgress) {
-            if (anim.isSmoothSwing()) {
-                GlStateManager.rotate(-swingSqrt * 40.0F, 1.0F, 0.0F, 0.0F);
-                GlStateManager.rotate(swing * 10.0F, 0.0F, 1.0F, 0.0F);
-            } else {
-                GlStateManager.rotate(-swingProgress * 40.0F, 1.0F, 0.0F, 0.0F);
-                GlStateManager.rotate(swingProgress * 10.0F, 0.0F, 1.0F, 0.0F);
-            }
-            return;
-        }
-        
-        // === BOW ===
-        if (anim.isOldBow() && item instanceof ItemBow && player.getItemInUse() != null) {
-            int useCount = stack.getMaxItemUseDuration() - player.getItemInUseCount();
-            float pull = (float)useCount / 20.0F;
-            
-            pull = (pull * pull + pull * 2.0F) / 3.0F;
-            if (pull > 1.0F) pull = 1.0F;
-            
-            GlStateManager.translate(0.0F, pull * -0.2F, 0.0F);
-            GlStateManager.rotate(pull * -20.0F, 0.0F, 0.0F, 1.0F);
-            GlStateManager.rotate(pull * 10.0F, 1.0F, 0.0F, 0.0F);
-            return;
-        }
-        
-        // === FISHING ROD ===
-        if (anim.isOldRod() && item instanceof ItemFishingRod) {
-            GlStateManager.translate(0.16F, 0.08F, -0.1F);
-            GlStateManager.rotate(-10.0F, 1.0F, 0.0F, 0.0F);
-            return;
-        }
-        
-        // === EATING ===
-        if (anim.isOldEating() && item instanceof ItemFood && player.getItemInUse() != null) {
-            int useCount = stack.getMaxItemUseDuration() - player.getItemInUseCount();
-            float eatProgress = (float)useCount / (float)stack.getMaxItemUseDuration();
-            
-            GlStateManager.translate(0.0F, eatProgress * -0.6F, 0.0F);
-            GlStateManager.rotate(eatProgress * 90.0F, 0.0F, 1.0F, 0.0F);
-            return;
-        }
-        
-        // Если ничего не подошло - используем vanilla swing
-        GlStateManager.rotate(-swingSqrt * 40.0F, 1.0F, 0.0F, 0.0F);
-        GlStateManager.rotate(-swing * 20.0F, 1.0F, 0.0F, 0.0F);
-        GlStateManager.rotate(-swing * 80.0F, 1.0F, 0.0F, 0.0F);
     }
     
     /**

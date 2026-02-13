@@ -80,6 +80,7 @@ public class AmethystClient {
         // Animation handlers
         MinecraftForge.EVENT_BUS.register(new AnimationHandler());
         MinecraftForge.EVENT_BUS.register(new DamageAnimationHandler());
+        MinecraftForge.EVENT_BUS.register(new OrangeBlockhitHandler()); // Orange's blockhit через RenderHandEvent
 
         // Module-specific event listeners
         registerModuleListener("CPS Counter");

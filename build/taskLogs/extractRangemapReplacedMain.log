@@ -1,10 +1,11 @@
 Symbol range map extraction starting
-Processing 65 files
+Processing 67 files
 processing com\amethyst\client\AmethystClient.java
 processing com\amethyst\client\AmethystConfig.java
 processing com\amethyst\client\AnimationHandler.java
 processing com\amethyst\client\AnimationPickerGUI.java
 processing com\amethyst\client\AnimationTransformHandler.java
+processing com\amethyst\client\BlockhitHandler.java
 processing com\amethyst\client\ChatCopyButton.java
 processing com\amethyst\client\ClickGUIPickerGUI.java
 processing com\amethyst\client\ColorPickerGUI.java
@@ -29,6 +30,7 @@ processing com\amethyst\client\Module.java
 processing com\amethyst\client\ModuleManager.java
 processing com\amethyst\client\NametagPickerGUI.java
 processing com\amethyst\client\NametagRenderer.java
+processing com\amethyst\client\OrangeBlockhitHandler.java
 processing com\amethyst\client\ScoreboardPickerGUI.java
 processing com\amethyst\client\ScoreboardRenderer.java
 processing com\amethyst\client\ScreenshotClickHandler.java

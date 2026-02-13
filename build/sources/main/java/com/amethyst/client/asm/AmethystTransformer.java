@@ -4,18 +4,19 @@ import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.*;
 
 /**
- * ASM Трансформер для инжекта 1.7 анимаций в ItemRenderer
+ * ASM Трансформер для инжекта 1.7 blockhit в ItemRenderer
  * 
- * ПРАВИЛЬНЫЙ ПОДХОД:
- * Инжектим вызов в метод transformFirstPersonItem ПЕРЕД всеми vanilla трансформациями
- * Это позволяет применить наши rotate/translate ДО того как vanilla применит scale
+ * ПРАВИЛЬНЫЙ ПОДХОД ДЛЯ BLOCKHIT:
+ * В 1.8 vanilla ItemRenderer.renderItemInFirstPerson передает swingProgress = 0
+ * когда игрок блокируется. Мы перехватываем вызов transformFirstPersonItem
+ * и заменяем swingProgress на player.getSwingProgress() чтобы анимация не прерывалась!
  */
 public class AmethystTransformer implements IClassTransformer {
     
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
         if (transformedName.equals("net.minecraft.client.renderer.ItemRenderer")) {
-            System.out.println("[Animations] Transforming ItemRenderer.transformFirstPersonItem");
+            System.out.println("[BlockhitTransformer] Transforming ItemRenderer for 1.7 blockhit");
             return transformItemRenderer(basicClass);
         }
         return basicClass;
@@ -38,58 +39,72 @@ public class AmethystTransformer implements IClassTransformer {
         
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Делаем transformFirstPersonItem публичным
-            // Deobfuscated: transformFirstPersonItem
-            // Obfuscated: func_178096_b
-            // Signature: (FF)V - два float параметра (equipProgress, swingProgress)
-            if ((name.equals("transformFirstPersonItem") || name.equals("func_178096_b")) 
-                && desc.equals("(FF)V")) {
-                System.out.println("[Animations] Found transformFirstPersonItem - making it public and injecting hook");
-                
-                // Меняем модификатор с private на public
-                int newAccess = Opcodes.ACC_PUBLIC | (access & ~Opcodes.ACC_PRIVATE & ~Opcodes.ACC_PROTECTED);
-                
-                MethodVisitor mv = super.visitMethod(newAccess, name, desc, signature, exceptions);
-                return new TransformMethodVisitor(api, mv);
+            MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+            
+            // Перехватываем renderItemInFirstPerson
+            // Deobfuscated: renderItemInFirstPerson(F)V
+            // Obfuscated: func_78440_a(F)V
+            if ((name.equals("renderItemInFirstPerson") || name.equals("func_78440_a")) 
+                && desc.equals("(F)V")) {
+                System.out.println("[BlockhitTransformer] Found renderItemInFirstPerson - injecting blockhit fix");
+                return new RenderItemMethodVisitor(api, mv);
             }
             
-            return super.visitMethod(access, name, desc, signature, exceptions);
+            return mv;
         }
     }
     
     /**
-     * Инжектим вызов нашего хука В НАЧАЛО transformFirstPersonItem
-     * Это позволяет применить 1.7 трансформации ДО vanilla кода
+     * Перехватывает вызовы transformFirstPersonItem и заменяет swingProgress
+     * на player.getSwingProgress() чтобы анимация не прерывалась при блокировке
      */
-    private static class TransformMethodVisitor extends MethodVisitor {
+    private static class RenderItemMethodVisitor extends MethodVisitor {
         
-        public TransformMethodVisitor(int api, MethodVisitor mv) {
+        public RenderItemMethodVisitor(int api, MethodVisitor mv) {
             super(api, mv);
         }
         
         @Override
-        public void visitCode() {
-            super.visitCode();
+        public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+            // Ищем вызовы transformFirstPersonItem
+            // Deobfuscated: transformFirstPersonItem(FF)V
+            // Obfuscated: func_178096_b(FF)V
+            if (opcode == Opcodes.INVOKESPECIAL && 
+                owner.equals("net/minecraft/client/renderer/ItemRenderer") &&
+                (name.equals("transformFirstPersonItem") || name.equals("func_178096_b")) &&
+                desc.equals("(FF)V")) {
+                
+                System.out.println("[BlockhitTransformer] Intercepting transformFirstPersonItem call");
+                
+                // Сохраняем swingProgress который vanilla передала (возможно 0 при блокировке)
+                mv.visitVarInsn(Opcodes.FSTORE, 10); // Сохраняем swingProgress во временную переменную
+                mv.visitVarInsn(Opcodes.FSTORE, 11); // Сохраняем equipProgress во временную переменную
+                
+                // Вызываем наш хук для получения правильного swingProgress
+                // AnimationTransformHandler.getCorrectSwingProgress(equipProgress, vanillaSwingProgress)
+                mv.visitVarInsn(Opcodes.FLOAD, 11); // equipProgress
+                mv.visitVarInsn(Opcodes.FLOAD, 10); // vanilla swingProgress
+                mv.visitMethodInsn(
+                    Opcodes.INVOKESTATIC,
+                    "com/amethyst/client/AnimationTransformHandler",
+                    "getCorrectSwingProgress",
+                    "(FF)F",
+                    false
+                );
+                
+                // Стек теперь: [this, equipProgress, corrected_swingProgress]
+                // Но нам нужно: [this, corrected_equipProgress, corrected_swingProgress]
+                // Так что загружаем equipProgress снова
+                mv.visitVarInsn(Opcodes.FSTORE, 12); // сохраняем corrected swingProgress
+                mv.visitVarInsn(Opcodes.FLOAD, 11);  // загружаем equipProgress обратно
+                mv.visitVarInsn(Opcodes.FLOAD, 12);  // загружаем corrected swingProgress
+                
+                // Теперь вызываем оригинальный метод с исправленным swingProgress
+                super.visitMethodInsn(opcode, owner, name, desc, itf);
+                return;
+            }
             
-            // Инжектим:
-            // AnimationTransformHandler.applyTransforms(equipProgress, swingProgress);
-            
-            // Параметр 1: equipProgress (float)
-            mv.visitVarInsn(Opcodes.FLOAD, 1);
-            
-            // Параметр 2: swingProgress (float)
-            mv.visitVarInsn(Opcodes.FLOAD, 2);
-            
-            // Вызываем статический метод
-            mv.visitMethodInsn(
-                Opcodes.INVOKESTATIC,
-                "com/amethyst/client/AnimationTransformHandler",
-                "applyTransforms",
-                "(FF)V",
-                false
-            );
-            
-            System.out.println("[Animations] Injected call to AnimationTransformHandler.applyTransforms");
+            super.visitMethodInsn(opcode, owner, name, desc, itf);
         }
     }
 }
