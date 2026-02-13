@@ -29,34 +29,25 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
 :sourceMainJava
-:compileJavaC:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\irc\IRCManager.java:57: error: method channel in class NetworkManager cannot be applied to given types;
-        event.manager.channel(CHANNEL);
-                     ^
-  required: no arguments
-  found: String
-  reason: actual and formal argument lists differ in length
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\irc\IRCManager.java:134: error: cannot find symbol
-            String label = buf.readCharSequence(labelLen, StandardCharsets.UTF_8).toString();
-                              ^
-  symbol:   method readCharSequence(int,Charset)
-  location: variable buf of type ByteBuf
-C:\Users\horizo\Desktop\newclient\build\sources\main\java\com\amethyst\client\irc\IRCManager.java:165: error: cannot find symbol
-            String label = buf.readCharSequence(labelLen, StandardCharsets.UTF_8).toString();
-                              ^
-  symbol:   method readCharSequence(int,Charset)
-  location: variable buf of type ByteBuf
-3 errors
- FAILED
+:compileJava
+:processResources
+:classes
+:jar
+:sourceTestJava
+:compileTestJava UP-TO-DATE
+:processTestResources UP-TO-DATE
+:testClasses UP-TO-DATE
+:test UP-TO-DATE
+:reobfJar
+:extractRangemapReplacedMain
+C:\Users\horizo\Desktop\newclient\build\sources\main\java
+:retromapReplacedMain
+remapping source...
+:sourceJar
+:assemble
+:check UP-TO-DATE
+:build
 
-FAILURE: Build failed with an exception.
+BUILD SUCCESSFUL
 
-* What went wrong:
-Execution failed for task ':compileJava'.
-> Compilation failed; see the compiler error output for details.
-
-* Try:
-Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output.
-
-BUILD FAILED
-
-Total time: 22.986 secs
+Total time: 43.41 secs

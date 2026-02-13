@@ -51,10 +51,7 @@ public class IRCManager {
      */
     @SubscribeEvent
     public void onClientConnectedToServer(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-        System.out.println("[IRC] Connected to server, registering channel: " + CHANNEL);
-        
-        // Регистрируем наш канал
-        event.manager.channel(CHANNEL);
+        System.out.println("[IRC] Connected to server");
         
         // Очищаем список пользователей
         users.clear();
@@ -88,11 +85,15 @@ public class IRCManager {
             return;
         }
         
+        System.out.println("[IRC] Received packet on channel: " + CHANNEL);
+        
         try {
             ByteBuf payload = packet.payload();
             
             // Читаем тип пакета
             byte packetType = payload.readByte();
+            
+            System.out.println("[IRC] Packet type: 0x" + Integer.toHexString(packetType & 0xFF));
             
             switch (packetType) {
                 case 0x01: // ANNOUNCE - другой клиент объявляет о себе
@@ -109,6 +110,7 @@ public class IRCManager {
             }
         } catch (Exception e) {
             System.err.println("[IRC] Error handling custom payload: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -131,7 +133,9 @@ public class IRCManager {
             
             // Custom label
             int labelLen = buf.readInt();
-            String label = buf.readCharSequence(labelLen, StandardCharsets.UTF_8).toString();
+            byte[] labelBytes = new byte[labelLen];
+            buf.readBytes(labelBytes);
+            String label = new String(labelBytes, StandardCharsets.UTF_8);
             
             // Color
             int color = buf.readInt();
@@ -141,6 +145,7 @@ public class IRCManager {
             users.put(uuid, user);
             
             System.out.println("[IRC] User joined: " + label + " (" + uuid + ")");
+            debugPrintUsers();
             
             // Отвечаем своим announce (но не чаще раз в 5 секунд)
             if (System.currentTimeMillis() - lastBroadcast > BROADCAST_COOLDOWN) {
@@ -162,7 +167,9 @@ public class IRCManager {
             UUID uuid = new UUID(mostSig, leastSig);
             
             int labelLen = buf.readInt();
-            String label = buf.readCharSequence(labelLen, StandardCharsets.UTF_8).toString();
+            byte[] labelBytes = new byte[labelLen];
+            buf.readBytes(labelBytes);
+            String label = new String(labelBytes, StandardCharsets.UTF_8);
             
             int color = buf.readInt();
             
@@ -294,6 +301,16 @@ public class IRCManager {
      */
     public Collection<IRCUser> getAllUsers() {
         return users.values();
+    }
+    
+    /**
+     * Отладочный метод - выводит всех IRC пользователей
+     */
+    public void debugPrintUsers() {
+        System.out.println("[IRC Debug] Total IRC users: " + users.size());
+        for (Map.Entry<UUID, IRCUser> entry : users.entrySet()) {
+            System.out.println("[IRC Debug] - " + entry.getKey() + " -> " + entry.getValue().getCustomLabel());
+        }
     }
     
     /**

@@ -41,10 +41,20 @@ public class ScoreboardRenderer {
         Scoreboard mod = (Scoreboard) AmethystClient.moduleManager.getModuleByName("Scoreboard");
         if (mod == null || !mod.isEnabled()) return;
 
-        net.minecraft.scoreboard.Scoreboard sb = mc.theWorld == null ? null : mc.theWorld.getScoreboard();
+        // Проверки на null
+        if (mc == null || mc.theWorld == null) return;
+        
+        net.minecraft.scoreboard.Scoreboard sb = mc.theWorld.getScoreboard();
         if (sb == null) return;
 
-        ScoreObjective objective = sb.getObjectiveInDisplaySlot(1);
+        ScoreObjective objective = null;
+        try {
+            objective = sb.getObjectiveInDisplaySlot(1);
+        } catch (Exception e) {
+            // Игнорируем ошибки при получении objective
+            return;
+        }
+        
         if (objective == null) return;
 
         ScaledResolution sr = new ScaledResolution(mc);
@@ -61,12 +71,20 @@ public class ScoreboardRenderer {
         int sx = (int)(x / scale);
         int sy = (int)(y / scale);
 
-        Collection<Score> scores = objective.getScoreboard().getSortedScores(objective);
+        Collection<Score> scores = null;
         List<Score> filteredScores = new ArrayList<>();
-        for (Score score : scores) {
-            if (score != null && score.getPlayerName() != null && !score.getPlayerName().startsWith("#")) {
-                filteredScores.add(score);
+        
+        try {
+            scores = objective.getScoreboard().getSortedScores(objective);
+            for (Score score : scores) {
+                if (score != null && score.getPlayerName() != null && !score.getPlayerName().startsWith("#")) {
+                    filteredScores.add(score);
+                }
             }
+        } catch (Exception e) {
+            // Игнорируем ошибки при обработке scores
+            GlStateManager.popMatrix();
+            return;
         }
 
         if (filteredScores.size() > 15) {
@@ -77,14 +95,20 @@ public class ScoreboardRenderer {
         int titleWidth = mc.fontRendererObj.getStringWidth(title);
         int maxLineWidth = titleWidth;
 
-        for (Score score : filteredScores) {
-            ScorePlayerTeam team = objective.getScoreboard().getPlayersTeam(score.getPlayerName());
-            String displayText = ScorePlayerTeam.formatPlayerName(team, score.getPlayerName());
-            int lineWidth = mc.fontRendererObj.getStringWidth(displayText);
-            if (mod.isShowNumbers()) {
-                lineWidth += mc.fontRendererObj.getStringWidth(" " + score.getScorePoints());
+        try {
+            for (Score score : filteredScores) {
+                ScorePlayerTeam team = objective.getScoreboard().getPlayersTeam(score.getPlayerName());
+                String displayText = ScorePlayerTeam.formatPlayerName(team, score.getPlayerName());
+                int lineWidth = mc.fontRendererObj.getStringWidth(displayText);
+                if (mod.isShowNumbers()) {
+                    lineWidth += mc.fontRendererObj.getStringWidth(" " + score.getScorePoints());
+                }
+                if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
             }
-            if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
+        } catch (Exception e) {
+            // Игнорируем ошибки при форматировании
+            GlStateManager.popMatrix();
+            return;
         }
 
         int boxWidth = maxLineWidth + 6;
@@ -102,19 +126,24 @@ public class ScoreboardRenderer {
         List<Score> reversedScores = new ArrayList<>(filteredScores);
         java.util.Collections.reverse(reversedScores);
         
-        for (Score score : reversedScores) {
-            ScorePlayerTeam team = objective.getScoreboard().getPlayersTeam(score.getPlayerName());
-            String displayText = ScorePlayerTeam.formatPlayerName(team, score.getPlayerName());
+        try {
+            for (Score score : reversedScores) {
+                ScorePlayerTeam team = objective.getScoreboard().getPlayersTeam(score.getPlayerName());
+                String displayText = ScorePlayerTeam.formatPlayerName(team, score.getPlayerName());
 
-            mc.fontRendererObj.drawStringWithShadow(displayText, sx, currentY, mod.getTextColor());
+                mc.fontRendererObj.drawStringWithShadow(displayText, sx, currentY, mod.getTextColor());
 
-            if (mod.isShowNumbers()) {
-                String scoreStr = String.valueOf(score.getScorePoints());
-                int scoreWidth = mc.fontRendererObj.getStringWidth(scoreStr);
-                mc.fontRendererObj.drawStringWithShadow(scoreStr, sx + boxWidth - scoreWidth - 3, currentY, mod.getNumberColor());
+                if (mod.isShowNumbers()) {
+                    String scoreStr = String.valueOf(score.getScorePoints());
+                    int scoreWidth = mc.fontRendererObj.getStringWidth(scoreStr);
+                    mc.fontRendererObj.drawStringWithShadow(scoreStr, sx + boxWidth - scoreWidth - 3, currentY, mod.getNumberColor());
+                }
+
+                currentY += 10;
             }
-
-            currentY += 10;
+        } catch (Exception e) {
+            // Игнорируем ошибки при рендеринге
+            System.err.println("[Scoreboard] Error rendering scoreboard: " + e.getMessage());
         }
 
         GlStateManager.popMatrix();

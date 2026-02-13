@@ -40,6 +40,7 @@ public class ModuleManager {
         modules.add(new CopyChat());
         modules.add(new NoHurtCam());
         modules.add(new AsyncScreenshot());
+        modules.add(new IRC());
         modules.add(new ClickGUI());
 
         loadConfig();

@@ -1,6 +1,7 @@
 package com.amethyst.client.irc;
 
 import com.amethyst.client.AmethystClient;
+import com.amethyst.client.Module;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -31,13 +32,41 @@ public class IRCNametagRenderer {
     public void onRenderPlayer(RenderPlayerEvent.Post event) {
         EntityPlayer player = event.entityPlayer;
         
+        // Лог 1: Событие сработало
+        System.out.println("[IRC Renderer] Event fired for: " + player.getName());
+        
+        // Проверяем включен ли IRC модуль
+        Module ircModule = AmethystClient.moduleManager.getModuleByName("IRC");
+        if (ircModule == null) {
+            System.out.println("[IRC Renderer] IRC module is NULL!");
+            return;
+        }
+        if (!ircModule.isEnabled()) {
+            System.out.println("[IRC Renderer] IRC module is DISABLED!");
+            return;
+        }
+        System.out.println("[IRC Renderer] IRC module is ENABLED");
+        
         // Не рендерим для себя (от первого лица)
         if (player == mc.thePlayer && mc.gameSettings.thirdPersonView == 0) {
+            System.out.println("[IRC Renderer] Skipping self (first person)");
             return;
         }
         
         UUID uuid = player.getUniqueID();
+        System.out.println("[IRC Renderer] Looking for UUID: " + uuid);
+        
         IRCUser ircUser = ircManager.getUser(uuid);
+        
+        // Лог: Найден ли пользователь
+        if (ircUser != null) {
+            System.out.println("[IRC Renderer] Found IRC user: " + ircUser.getCustomLabel());
+            System.out.println("[IRC Renderer] Rendering tag for: " + player.getName() + " - " + ircUser.getCustomLabel());
+        } else {
+            System.out.println("[IRC Renderer] IRC user NOT FOUND for UUID: " + uuid);
+            System.out.println("[IRC Renderer] Current IRC users:");
+            AmethystClient.ircManager.debugPrintUsers();
+        }
         
         // Если игрок не использует мод - не рендерим
         if (ircUser == null) {
@@ -52,9 +81,13 @@ public class IRCNametagRenderer {
      * Рендерит IRC метку над игроком
      */
     private void renderIRCNametag(EntityPlayer player, IRCUser ircUser, double x, double y, double z, float partialTicks) {
+        System.out.println("[IRC Renderer] renderIRCNametag called for: " + player.getName());
+        
         FontRenderer fontRenderer = mc.fontRendererObj;
         String label = ircUser.getCustomLabel();
         int color = ircUser.getColor();
+        
+        System.out.println("[IRC Renderer] Label: " + label + ", Color: 0x" + Integer.toHexString(color));
         
         // Позиция над головой игрока (немного выше обычного nametag)
         double yOffset = player.height + 0.5; // +0.5 чтобы было выше vanilla nametag
@@ -62,8 +95,11 @@ public class IRCNametagRenderer {
         // Расстояние до игрока
         double distance = player.getDistanceToEntity(mc.thePlayer);
         
+        System.out.println("[IRC Renderer] Distance: " + distance + " blocks");
+        
         // Не рендерим если слишком далеко
         if (distance > 64.0) {
+            System.out.println("[IRC Renderer] Too far away, skipping render");
             return;
         }
         
@@ -115,6 +151,8 @@ public class IRCNametagRenderer {
         
         // Рисуем текст с тенью
         fontRenderer.drawString(label, -halfWidth, 0, color);
+        
+        System.out.println("[IRC Renderer] ✓ Successfully rendered tag!");
         
         // Восстанавливаем состояние
         GlStateManager.enableLighting();
