@@ -24,7 +24,7 @@ See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more i
 :extractMcpMappings SKIPPED
 :genSrgs SKIPPED
 :deobfMcMCP SKIPPED
-:sourceApiJava UP-TO-DATE
+:sourceApiJava
 :compileApiJava UP-TO-DATE
 :processApiResources UP-TO-DATE
 :apiClasses UP-TO-DATE
@@ -52,4 +52,4 @@ remapping source...
 
 BUILD SUCCESSFUL
 
-Total time: 38.309 secs
+Total time: 42.558 secs
